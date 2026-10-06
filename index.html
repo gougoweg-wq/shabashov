@@ -76,7 +76,6 @@ nav ul{display:flex;gap:22px;list-style:none;font-size:14px}
 .card p{font-size:14.5px;color:var(--ink2)}
 .paper{background:var(--paper)}
 
-/* timeline */
 .tl{margin-top:32px;display:grid;gap:0}
 .tl-row{display:grid;grid-template-columns:150px 1fr;gap:24px;padding:20px 0;border-top:1px solid var(--line)}
 .tl-row:last-child{border-bottom:1px solid var(--line)}
@@ -86,7 +85,6 @@ nav ul{display:flex;gap:22px;list-style:none;font-size:14px}
 .tl-row p{font-size:14.5px;color:var(--ink2);max-width:70ch}
 .tl-row .src{margin-top:6px}
 
-/* diagnostic */
 .diag{background:#13232c;color:#fff}
 .diag h2,.diag .lead{color:#fff}.diag .lead{color:#c5d3d6}
 .diag .kicker{color:#8fb3ba}
@@ -106,7 +104,6 @@ nav ul{display:flex;gap:22px;list-style:none;font-size:14px}
 .result .btn{background:#fff;color:#13232c}
 .result .btn.ghost{background:transparent;color:#fff;border-color:rgba(255,255,255,.3)}
 
-/* services */
 details{border-top:1px solid var(--line)}
 details:last-of-type{border-bottom:1px solid var(--line)}
 summary{list-style:none;cursor:pointer;display:grid;grid-template-columns:56px 1fr 24px;gap:16px;align-items:center;padding:20px 0;font-size:18px;font-weight:600}
@@ -119,12 +116,10 @@ details[open] summary .chev{transform:rotate(45deg)}
 .dbody b{display:block;color:var(--ink);margin-bottom:4px;font-size:13px}
 .dbody ul{padding-left:18px;display:grid;gap:4px}
 
-/* cases */
 .case .tag{font-size:13px;color:var(--mute);margin-bottom:6px}
 .case .num{font-size:30px;font-weight:600;color:var(--acc);letter-spacing:-.02em;line-height:1.1;margin:8px 0}
 .case .src{margin-top:10px}
 
-/* press */
 .press{display:grid;gap:0;margin-top:32px}
 .press a{display:grid;grid-template-columns:130px 1fr;gap:20px;padding:16px 0;border-top:1px solid var(--line);font-size:15px}
 .press a:last-child{border-bottom:1px solid var(--line)}
@@ -134,7 +129,6 @@ details[open] summary .chev{transform:rotate(45deg)}
 .press .d{display:block;font-size:13px;color:var(--ink2);margin-top:2px}
 @media (max-width:560px){.press a{grid-template-columns:1fr;gap:4px}}
 
-/* contact */
 .contact{background:#13232c;color:#fff}
 .diag .kicker,.contact .kicker{color:#8fb3ba}
 .diag .btn,.contact .btn{background:#fff;color:#13232c}
@@ -199,7 +193,6 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
   </div>
 </div></section>
 
-<!-- Interactive diagnostic -->
 <section class="diag" id="diag"><div class="wrap">
   <p class="kicker"><span data-ru>Интерактив</span><span data-en>Interactive</span></p>
   <h2><span data-ru>Разбор вашего объекта за три ответа</span><span data-en>Your asset check in three answers</span></h2>
@@ -235,7 +228,6 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
   </div>
 </div></section>
 
-<!-- Track record -->
 <section id="path"><div class="wrap">
   <p class="kicker"><span data-ru>Путь</span><span data-en>Track record</span></p>
   <h2><span data-ru>22 года, три страны, более 3 млн м² — каждый раз с ответственностью за экономику</span><span data-en>22 years, three countries, 3M+ sq m — always accountable for the economics</span></h2>
@@ -290,7 +282,6 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
   <p class="src" style="margin-top:14px"><span data-ru>Рекомендации опубликованы в</span><span data-en>References are published on</span> <a href="https://www.linkedin.com/in/maksim-shabashov-1b677917b/" target="_blank" rel="noopener">LinkedIn</a>.</p>
 </div></section>
 
-<!-- Services -->
 <section class="paper" id="services"><div class="wrap">
   <p class="kicker"><span data-ru>Услуги</span><span data-en>Services</span></p>
   <h2><span data-ru>Пять точек входа — от участка до NOI</span><span data-en>Five entry points — from the plot to NOI</span></h2>
@@ -328,7 +319,6 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
   </div>
 </div></section>
 
-<!-- Cases -->
 <section id="cases"><div class="wrap">
   <p class="kicker"><span data-ru>Кейсы</span><span data-en>Cases</span></p>
   <h2><span data-ru>Результаты на объектах, которыми управлял лично</span><span data-en>Results on assets I managed personally</span></h2>
@@ -342,7 +332,6 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
   </div>
 </div></section>
 
-<!-- Press -->
 <section class="paper" id="press"><div class="wrap">
   <p class="kicker"><span data-ru>В прессе</span><span data-en>Press</span></p>
   <h2><span data-ru>Публикации и выступления</span><span data-en>Publications and talks</span></h2>
@@ -358,7 +347,6 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
   </div>
 </div></section>
 
-<!-- Contact -->
 <section class="contact" id="contact"><div class="wrap">
   <p class="kicker" style="color:#8fb3ba"><span data-ru>Первый шаг</span><span data-en>First step</span></p>
   <h2><span data-ru>Начнём с разбора вашего объекта</span><span data-en>Let's start with your asset</span></h2>
@@ -395,12 +383,10 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
   function setLang(l){ lang=l; document.documentElement.lang=l; fillSelects(l); document.querySelectorAll(".lang button").forEach(function(b){var on=b.dataset.lang===l;b.classList.toggle("on",on);b.setAttribute("aria-pressed",on?"true":"false")}); try{localStorage.setItem("ms-lang",l)}catch(e){} render(); }
   document.querySelectorAll(".lang button").forEach(function(b){ b.addEventListener("click",function(){setLang(b.dataset.lang)}); });
 
-  // ---- mobile nav
   var nav=document.getElementById("nav"), burger=document.getElementById("burger");
   burger.addEventListener("click",function(){ var open=nav.classList.toggle("open"); burger.setAttribute("aria-expanded",open?"true":"false"); });
   nav.querySelectorAll("ul a").forEach(function(a){ a.addEventListener("click",function(){ nav.classList.remove("open"); burger.setAttribute("aria-expanded","false"); }); });
 
-  // ---- diagnostic
   var ans={type:null,stage:null,task:null};
   var LABEL={ru:{},en:{}};
   document.querySelectorAll(".opts").forEach(function(g){
@@ -434,7 +420,6 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
     if(ty==="port"&&s==="live"&&t!=="audit") out.fmt="D";
     return out;
   }
-  // Сначала синхронно копируем (пока документ в фокусе), затем синхронно открываем Telegram — оба действия внутри клика, попап не блокируется.
   function copySync(text){
     var ta=document.createElement("textarea"); ta.value=text; ta.setAttribute("readonly",""); ta.style.position="fixed"; ta.style.opacity="0"; ta.style.left="-9999px";
     document.body.appendChild(ta); ta.focus(); ta.select(); var ok=false;
@@ -470,8 +455,6 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
     var v=function(id){var el=document.getElementById(id);return el.value||""};
     return (lang==="ru"?"Тип объекта: ":"Asset type: ")+v("f-type")+"\n"+(lang==="ru"?"Стадия: ":"Stage: ")+v("f-stage")+"\n\n"+v("f-msg")+"\n\n"+(lang==="ru"?"Контакт: ":"Contact: ")+v("f-contact");
   }
-  // Отправка через FormSubmit: письмо приходит на EMAIL без почтового клиента.
-  // При первой заявке FormSubmit пришлёт на EMAIL письмо с кнопкой активации — нажать один раз.
   var ENDPOINT="https://formsubmit.co/ajax/"+EMAIL;
   function sendForm(subject,text){
     return fetch(ENDPOINT,{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},

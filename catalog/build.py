@@ -3,7 +3,26 @@
 from page import *
 from draw import *
 from sections import *
-from tools import tool
+from tools import tool as _svg_tool
+import os
+from draw import comp as _svg_comp
+
+_HERE = os.path.dirname(os.path.abspath(__file__))
+
+
+def _img(prefix, kind, fallback, W, H):
+    p = f"img/{prefix}_{kind}.png"
+    if os.path.exists(os.path.join(_HERE, p)):
+        return f'<img src="{p}" alt="" style="width:100%;height:100%;object-fit:contain;display:block">'
+    return fallback(kind, W, H)
+
+
+def comp(kind, W=240, H=170):
+    return _img("c", kind, _svg_comp, W, H)
+
+
+def tool(kind, W=240, H=160):
+    return _img("t", kind, _svg_tool, W, H)
 
 b = Book()
 P = "ПО ПРОЕКТУ"
@@ -29,8 +48,24 @@ def grid(items, cols=2, gap=16):
     return f'<div class="cards" style="grid-template-columns:repeat({cols},1fr);gap:{gap}px">{"".join(items)}</div>'
 
 
+def photo3d(name, pos="center"):
+    return f'<img src="img/{name}.png" alt="" style="width:100%;height:100%;object-fit:cover;object-position:{pos};display:block">'
+
+
+N3D = {"outer_corner": "n_outer_corner", "inner_corner": "n_inner_corner", "window_reveal": "n_window", "window_head": "n_window",
+       "window_sill": "n_window", "base": "n_base", "parapet": "n_parapet", "top": "n_parapet", "hjoint": "n_hjoint", "vjoint": "n_vjoint"}
+
+
+def photo3d_c(name):
+    return f'<img src="img/{name}.png" alt="" style="width:100%;height:100%;max-height:420px;object-fit:contain;display:block">'
+
+
+def photo(dark, variant):
+    return photo3d(("b_dark" if dark else "b_day") + str(variant))
+
+
 def full_photo(caption, sub, dark=True, variant=0):
-    body = (f'<div style="position:absolute;inset:0">{building(1080, 1920, dark, variant)}</div>'
+    body = (f'<div style="position:absolute;inset:0">{photo(dark, variant)}</div>'
             f'<div style="position:absolute;left:72px;right:72px;bottom:150px;color:#fff">'
             f'<div class="chip" style="color:{OR}">ГОТОВЫЙ РЕЗУЛЬТАТ</div>'
             f'<div style="font-size:76px;font-weight:800;line-height:1;margin-top:16px;text-transform:uppercase">{caption}</div>'
@@ -51,7 +86,7 @@ def divider(n, name, sub, items):
 
 
 # =====================================================================  01 COVER
-cover = (f'<div style="position:absolute;inset:0">{building(1080, 1920, True, 0)}</div>'
+cover = (f'<div style="position:absolute;inset:0">{photo3d('b_cover')}</div>'
          f'<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(29,31,34,.92) 0%,rgba(29,31,34,.35) 34%,rgba(29,31,34,0) 55%,rgba(29,31,34,.88) 84%)"></div>'
          f'<div style="position:absolute;left:72px;top:72px">{logo(True, True, 56)}</div>'
          f'<div style="position:absolute;right:72px;top:84px;color:#c9ccd0;font-size:13px;letter-spacing:.3em;text-align:right;line-height:1.7">ТЕХНИЧЕСКИЙ КАТАЛОГ<br>2026 — 2027</div>'
@@ -233,7 +268,7 @@ chapter("04", "Заклёпочная<br>система", "rivet", ["wall", "bra
         [("Несущая стена", ""), ("Кронштейн", "несущий / опорный"), ("Утеплитель", "мин. вата"), ("Мембрана", "ветрозащитная"),
          ("L-профиль", ""), ("T-профиль", ""), ("HPL-панель", ""), ("Заклёпка", "в цвет панели")],
         rivet_comps, rivet_principle, rivet_nodes, "rivet", prep_rivet, rivet_montage, rivet_tools, rivet_recs,
-        ("Заклёпочный<br>фасад", "Видимый ритм крепежа как часть архитектуры. Ремонтопригодно и проверено временем.", True, 0),
+        ("Заклёпочный<br>фасад", "Видимый ритм крепежа как часть архитектуры. Ремонтопригодно и проверено временем.", False, 0),
         "Классическое и надёжное решение: панель крепится к подсистеме фасадными заклёпками. Видимый крепёж, ремонтопригодность.")
 
 # ---------------------------------------------------------------- GLUE
@@ -324,7 +359,7 @@ b.add(title("06.4", "Монтаж", "", "МОНТАЖ") + '<div class="steps" st
       + '<div style="margin-top:22px"></div>' + grid([card("", n, "", tool(k), h=110, g=True) for n, k in
                                                       [("Дрель", "drill"), ("ЧПУ", "cnc"), ("Уровень", "level"), ("Рулетка", "tape"), ("Ключи", "wrench"), ("СИЗ", "glasses")]], 6, 10),
       "СКРЫТАЯ СИСТЕМА")
-full_photo("Скрытый<br>фасад", "Максимально чистая плоскость: минимум видимых элементов.", True, 1)
+full_photo("Скрытый<br>фасад", "Максимально чистая плоскость: минимум видимых элементов.", False, 1)
 
 # =====================================================================  08 SCREW
 divider("07", "Механическая<br>система", "Панель крепится к подсистеме фасадными винтами с окрашенной головкой. Видимый механический крепёж.",
@@ -378,9 +413,10 @@ divider("09", "Фасадные<br>узлы", "Отдельная страниц
         [n for _, n, _ in node_pages])
 for i, (k, n, pts) in enumerate(node_pages):
     b.add(title(f"09.{i + 1}", n, "", "ФАСАДНЫЙ УЗЕЛ") + f'<div class="fig">{node(k, 900, 720, "rivet")}</div>'
-          + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:30px"><div><h2 class="sec">Ключевые элементы</h2>'
+          + f'<div style="display:grid;grid-template-columns:1.1fr 1fr;gap:36px;margin-top:30px"><div style="background:{XL};padding:18px;display:flex;flex-direction:column">'
+          + f'<div class="chip" style="color:{GR}">3D-ВИЗУАЛИЗАЦИЯ УЗЛА</div><div style="flex:1;min-height:360px;margin-top:10px">{photo3d_c(N3D[k])}</div></div><div><h2 class="sec">Ключевые элементы</h2>'
           + "".join(f'<div class="rec" style="grid-template-columns:40px 1fr;padding:12px 0"><span class="badge">{j + 1}</span><h4 style="font-size:18px;padding-top:3px">{t}</h4></div>' for j, t in enumerate(pts))
-          + '</div><div><h2 class="sec">Данные проекта</h2>'
+          + '<div style="height:26px"></div><h2 class="sec">Данные проекта</h2>'
           + "".join(f'<div class="rec" style="grid-template-columns:1fr auto;padding:12px 0"><h4 style="font-size:17px">{a}</h4><span class="pill">{c}</span></div>'
                     for a, c in [("Шаг крепления", "ПО РАСЧЁТУ"), ("Ширина швов", P), ("Вентзазор", "ПО РАСЧЁТУ"), ("Фактические размеры", "НА ОБЪЕКТЕ")])
           + '</div></div>', "ФАСАДНЫЕ УЗЛЫ")
@@ -481,7 +517,7 @@ for i, (e, r) in enumerate(zip(cyc, ru)):
     cs += label(70, y + 38, e, 20, "start", 800, "#fff", 1) + label(70, y + 62, r, 14, "start", 400, "#fff" if last else "#9aa0a7")
     if not last:
         cs += arrow(210, y + 86, 210, y + 108, OR, 2)
-b.add(f'<div style="position:absolute;right:0;top:0;bottom:0;width:520px">{building(520, 1920, True, 0)}</div>'
+b.add(f'<div style="position:absolute;right:0;top:0;bottom:0;width:520px">{photo3d('b_cover', 'right')}</div>'
       + f'<div style="position:absolute;right:0;top:0;bottom:0;width:520px;background:linear-gradient(90deg,#1D1F22 0%,rgba(29,31,34,0) 40%)"></div>'
       + f'<div style="position:relative;z-index:2">{title("15", "Полный цикл<br>UZHPL")}'
       + f'<div style="margin-top:50px;width:440px">{svg(420, 900, cs)}</div>'

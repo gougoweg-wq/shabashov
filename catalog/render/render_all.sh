@@ -11,4 +11,6 @@ for k in laser drill riveter hand_riveter drillbit jig saw tracksaw cnc router l
 ./shoot.sh bracket_fixed ../img/c_bracket_fixed.png 1200 900 "&yaw=0.7"
 ./shoot.sh bracket_sliding ../img/c_bracket_sliding.png 1200 900 "&yaw=0.7"
 
+./shoot.sh laser ../img/t_laser.png 1200 1000 "&yaw=-0.4&pitch=0.25"
+./shoot.sh helmet ../img/t_helmet.png 1200 800
 python3 autocrop.py ../img

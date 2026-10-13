@@ -278,13 +278,34 @@ function riveter() {
 }
 function laserLevel() {
   const g = new THREE.Group();
-  g.add(at(box(110, 130, 110, M.graphite(), 14), 0, 0, 0));
-  g.add(at(box(116, 30, 116, M.orange(), 8), 0, 70, 0));
-  g.add(at(box(116, 20, 116, M.orange(), 6), 0, -70, 0));
-  for (const r of [0, Math.PI / 2]) { const w = at(box(70, 70, 4, M.glass()), Math.sin(r) * 56, 10, Math.cos(r) * 56, 0, r, 0); g.add(w); }
-  g.add(at(box(600, 1.2, 1.2, M.laser()), 0, 10, 58));
-  g.add(at(box(1.2, 400, 1.2, M.laser()), 0, 10, 58));
-  g.add(at(cyl(30, 34, 22, M.graphite()), 0, -90, 0));
+  const body = new THREE.Group(); g.add(body);
+  // housing: graphite core with orange rubber overmould, glass head
+  body.add(at(box(96, 120, 96, M.graphite(), 18), 0, 60, 0));
+  for (const y of [8, 112]) body.add(at(box(108, 18, 108, new THREE.MeshPhysicalMaterial({ color: 0xf26a1b, roughness: .65 }), 8), 0, y, 0));
+  for (const [x, z] of [[-50, -50], [50, -50], [-50, 50], [50, 50]]) body.add(at(box(14, 110, 14, new THREE.MeshPhysicalMaterial({ color: 0xf26a1b, roughness: .7 }), 6), x, 60, z));
+  const glass = new THREE.MeshPhysicalMaterial({ color: 0x1d3b2a, roughness: .02, metalness: .2, clearcoat: 1, transparent: true, opacity: .85 });
+  body.add(at(mesh(new THREE.CylinderGeometry(40, 44, 50, 48), glass), 0, 146, 0));
+  body.add(at(cyl(46, 46, 8, M.graphite()), 0, 124, 0)); body.add(at(cyl(42, 42, 10, M.graphite()), 0, 176, 0));
+  body.add(at(cyl(10, 10, 6, M.orange()), 0, 183, 0));
+  // keypad + LED
+  body.add(at(box(50, 24, 3, M.rubber(), 2), 0, 40, 49));
+  body.add(at(cyl(5, 5, 3, new THREE.MeshBasicMaterial({ color: 0x35e06a })), -14, 40, 51, Math.PI / 2));
+  body.add(at(cyl(5, 5, 3, M.orange()), 12, 40, 51, Math.PI / 2));
+  body.position.y = 330;
+  // tripod
+  body.add(at(cyl(20, 26, 20, M.darkSteel()), 0, -12, 0));
+  g.add(at(cyl(10, 10, 60, M.darkSteel()), 0, 296, 0));
+  g.add(at(cyl(32, 32, 26, M.graphite()), 0, 262, 0));
+  for (let i = 0; i < 3; i++) {
+    const a2 = i / 3 * Math.PI * 2 + .3, leg = new THREE.Group();
+    leg.add(at(cyl(7, 6, 300, M.alu()), 0, -150, 0)); leg.add(at(cyl(5, 4, 30, M.rubber()), 0, -305, 0));
+    leg.position.set(Math.cos(a2) * 20, 262, Math.sin(a2) * 20); leg.rotation.set(Math.sin(a2) * .38, 0, -Math.cos(a2) * .38); g.add(leg);
+  }
+  // laser planes (vertical + horizontal fans)
+  const fan = new THREE.MeshBasicMaterial({ color: 0x35e06a, transparent: true, opacity: .16, side: THREE.DoubleSide, depthWrite: false });
+  const f1 = mesh(new THREE.CircleGeometry(230, 48, -0.7, 1.4), fan), f2 = mesh(new THREE.CircleGeometry(230, 48, -0.55, 1.1), fan);
+  f1.castShadow = f2.castShadow = false; f1.receiveShadow = f2.receiveShadow = false;
+  g.add(at(f1, 0, 476, 0, -Math.PI / 2, 0, -Math.PI / 2)); g.add(at(f2, 0, 476, 0, 0, Math.PI / 2, 0));
   return g;
 }
 function circSaw() {
@@ -440,9 +461,9 @@ const R = {
   drill: () => loadPH('Drill_01'), tape_measure: () => loadPH('measuring_tape_01'), wrench: () => loadPH('combination_wrench'),
   vice: () => loadPH('bench_vice_01'), gloves,
   riveter: () => loadSKF('riveter'), hand_riveter: () => loadSKF('riveter'), laser: laserLevel, saw: () => loadSKF('saw'), tracksaw: () => loadSKF('saw'),
-  cnc: () => loadSKF('cnc'), router, level: () => loadSKF('level'), clamp: () => loadSKF('clamp'), suction,
-  gun: () => loadSKF('gun'), brush, wipes, knife: () => loadSKF('knife'), glasses: () => loadSKF('glasses'), skf_gloves: () => loadSKF('gloves'), ear: earmuffs, mask, boots, hammerdrill: hammerDrill, calipers: () => loadSKF('calipers'), square, hygro,
-  deburr, vacuum, drillbit: () => loadSKF('drillbit'), jig, tape_measure_skf: () => loadSKF('tape'),
+  cnc: () => loadSKF('cnc'), router, level: () => loadSKF('level'), clamp: () => loadSKF('clamp'), suction: () => loadSKF('suction'),
+  gun: () => loadSKF('gun'), brush: () => loadSKF('brush'), wipes, knife: () => loadSKF('knife'), glasses: () => loadSKF('glasses'), skf_gloves: () => loadSKF('gloves'), ear: () => loadSKF('ear'), mask: () => loadSKF('mask'), helmet: () => loadSKF('helmet'), boots, hammerdrill: hammerDrill, calipers: () => loadSKF('calipers'), square, hygro,
+  deburr, vacuum: () => loadSKF('vacuum'), drillbit: () => loadSKF('drillbit'), jig, tape_measure_skf: () => loadSKF('tape'),
 };
 
 // ------------------------------------------------------------------ studio

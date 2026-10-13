@@ -70,5 +70,41 @@
   "author": "Lady Lion Studios",
   "license": "CC Attribution",
   "url": "https://sketchfab.com/3d-models/corded-milling-machine-free-f5236fcf79ac40869f6f4bccb9155ef5"
+ },
+ "brush": {
+  "title": "Brush",
+  "author": "Mikhail Antonov",
+  "license": "CC Attribution",
+  "url": "https://sketchfab.com/3d-models/brush-53a3641006ac48cdb883467c54b9cb95"
+ },
+ "mask": {
+  "title": "Respirator",
+  "author": "DenisKorablyov",
+  "license": "CC Attribution",
+  "url": "https://sketchfab.com/3d-models/respirator-7fb8299219804e5db4baff96dc496d83"
+ },
+ "ear": {
+  "title": "Earmuffs With Radio",
+  "author": "Lassi Kaukonen",
+  "license": "CC Attribution",
+  "url": "https://sketchfab.com/3d-models/earmuffs-with-radio-9e308582b90746d986ec3999ab42a6d5"
+ },
+ "suction": {
+  "title": "Glass suction cup",
+  "author": "Chenchanchong",
+  "license": "CC Attribution",
+  "url": "https://sketchfab.com/3d-models/glass-suction-cup-fdfeede6233643ac9b7e6945e91a99f9"
+ },
+ "vacuum": {
+  "title": "Vacuum Cleaner",
+  "author": "Yannick Weber",
+  "license": "CC Attribution",
+  "url": "https://sketchfab.com/3d-models/vacuum-cleaner-9043d7516953498ea001f74914e50db8"
+ },
+ "helmet": {
+  "title": "Safety Helmet",
+  "author": "jura",
+  "license": "CC Attribution",
+  "url": "https://sketchfab.com/3d-models/safety-helmet-17725e7ba38d4e4fadde777f4a9ba930"
  }
 }

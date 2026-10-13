@@ -469,7 +469,7 @@ groups = [("ИЗМЕРЕНИЕ", [("Лазерный уровень", "laser"), 
           ("МОНТАЖ", [("Уровень", "level"), ("Струбцины", "clamp"), ("Вакуумные захваты", "suction"), ("Ключи", "wrench")]),
           ("КЛЕЙ", [("Пистолет", "gun"), ("Аппликатор", "brush"), ("Салфетки", "wipes"), ("Гигрометр", "hygro")]),
           ("ЗАКЛЁПКИ", [("Аккум. заклёпочник", "riveter"), ("Ручной заклёпочник", "hand_riveter")]),
-          ("БЕЗОПАСНОСТЬ", [("Очки", "glasses"), ("Защита слуха", "ear"), ("Перчатки", "gloves"), ("Респиратор", "mask")])]
+          ("БЕЗОПАСНОСТЬ", [("Очки", "glasses"), ("Защита слуха", "ear"), ("Респиратор", "mask"), ("Каска", "helmet")])]
 tool_rows = ""
 for gname, items in groups:
     tool_rows += (f'<div style="display:grid;grid-template-columns:170px 1fr;gap:16px;border-bottom:1px solid {LG};padding:10px 0;align-items:center">'
@@ -508,8 +508,8 @@ b.add(title("14", "Рекомендации<br>UZHPL", "Краткие инже�
 # =====================================================================  CREDITS (CC-BY attribution)
 import json as _json
 _cr = _json.load(open(os.path.join(_HERE, "render", "credits.json"))) if os.path.exists(os.path.join(_HERE, "render", "credits.json")) else {}
-_rows = "".join(f'<div class="rec" style="grid-template-columns:1fr 200px;padding:12px 0"><div><h4 style="font-size:16px">{v["title"]}</h4>'
-                f'<p style="font-size:13px">Автор: {v["author"]} · <a href="{v["url"]}" style="color:{DG}">{v["url"]}</a></p></div>'
+_rows = "".join(f'<div class="rec" style="grid-template-columns:1fr 160px;padding:6px 0"><div><h4 style="font-size:14px">{v["title"]}</h4>'
+                f'<p style="font-size:11px;margin-top:2px">Автор: {v["author"]} · <a href="{v["url"]}" style="color:{DG}">{v["url"]}</a></p></div>'
                 f'<span class="pill" style="justify-self:end;align-self:center">{v["license"]}</span></div>' for v in _cr.values())
 b.add(title("", "Источники<br>3D-моделей", "Часть иллюстраций выполнена на основе 3D-моделей сторонних авторов. Модели используются как визуализация типовых инструментов и не являются рекламой производителей.")
       + f'<div style="margin-top:30px">{_rows}</div>'

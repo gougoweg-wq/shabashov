@@ -117,7 +117,7 @@ class Book:
         n = len(self.pages) + 1
         hd = "" if bare else f'<div class="hd">{logo(dark)}<div class="tag">{tag}</div></div>'
         ft = "" if bare else (f'<div class="ft"><span class="pg">{n:02d}</span>'
-                              f'<span><b>UZHPL</b> &nbsp;|&nbsp; HPL FACADE &amp; INTERIOR SYSTEMS</span><span>UZHPL.UZ</span></div>')
+                              f'<span><b>UZHPL</b> &nbsp;|&nbsp; HPL FACADE &amp; INTERIOR SYSTEMS</span><span>UZHPL.UZ &nbsp;·&nbsp; +998 77 003 28 82</span></div>')
         import re
         for m in re.finditer(r'<div class="(?:n|big-n)">([0-9.]+)</div>', body):
             self.anchors.setdefault(m.group(1), n)

@@ -111,7 +111,7 @@ const loadSKF = (name) => new Promise((res, rej) => gltfLoader.load(`assets/skf_
   const ms = []; g.scene.updateMatrixWorld(true);
   g.scene.traverse(o => { if (o.isMesh) { o.castShadow = o.receiveShadow = true; ms.push([o, new THREE.Box3().setFromObject(o).getSize(new THREE.Vector3()).length()]); } });
   const sz = ms.map(m => m[1]).sort((a, b) => a - b); const med = sz[Math.floor(sz.length * .75)] || 1;
-  if (name === 'cnc') for (const [o, l] of ms) if (ms.length > 2 && l > med * 4) o.visible = false;      // drop backdrop domes / ground planes
+  if (name === 'cnc' || name === 'hygro') for (const [o, l] of ms) if (ms.length > 2 && l > med * 4) o.visible = false;      // drop backdrop domes / ground planes
   res(g.scene); }, undefined, rej));
 const loadPH = (name) => new Promise((res) => gltfLoader.load(`assets/${name}/${name}.gltf`, g => { g.scene.traverse(o => { if (o.isMesh) { o.castShadow = o.receiveShadow = true; } }); res(g.scene); }));
 
@@ -462,8 +462,8 @@ const R = {
   vice: () => loadPH('bench_vice_01'), gloves,
   riveter: () => loadSKF('riveter'), hand_riveter: () => loadSKF('riveter'), laser: laserLevel, saw: () => loadSKF('saw'), tracksaw: () => loadSKF('saw'),
   cnc: () => loadSKF('cnc'), router, level: () => loadSKF('level'), clamp: () => loadSKF('clamp'), suction: () => loadSKF('suction'),
-  gun: () => loadSKF('gun'), brush: () => loadSKF('brush'), wipes, knife: () => loadSKF('knife'), glasses: () => loadSKF('glasses'), skf_gloves: () => loadSKF('gloves'), ear: () => loadSKF('ear'), mask: () => loadSKF('mask'), helmet: () => loadSKF('helmet'), boots, hammerdrill: hammerDrill, calipers: () => loadSKF('calipers'), square, hygro,
-  deburr, vacuum: () => loadSKF('vacuum'), drillbit: () => loadSKF('drillbit'), jig, tape_measure_skf: () => loadSKF('tape'),
+  gun: () => loadSKF('gun'), brush: () => loadSKF('brush'), wipes, knife: () => loadSKF('knife'), glasses: () => loadSKF('glasses'), skf_gloves: () => loadSKF('gloves'), ear: () => loadSKF('ear'), mask: () => loadSKF('mask'), helmet: () => loadSKF('helmet'), boots, hammerdrill: () => loadSKF('hammerdrill'), calipers: () => loadSKF('calipers2'), square: () => loadSKF('square'), hygro: () => loadSKF('hygro'),
+  deburr: () => loadSKF('deburr'), vacuum: () => loadSKF('vacuum'), drillbit: () => loadSKF('drillbit'), jig, tape_measure_skf: () => loadSKF('tape'),
 };
 
 // ------------------------------------------------------------------ studio
@@ -504,7 +504,7 @@ async function main() {
   renderer.render(scene, camera);
   document.title = 'done';
 }
-(NAME.startsWith('building') ? buildingMain() : NAME.startsWith('node_') ? nodeMain() : main()).catch(e => { document.title = 'error ' + e; console.error(e); });
+(NAME.startsWith('int_') ? interiorMain() : NAME.startsWith('building') ? buildingMain() : NAME.startsWith('node_') ? nodeMain() : main()).catch(e => { document.title = 'error ' + e; console.error(e); });
 
 
 // ================================================================== ARCHITECTURE
@@ -530,18 +530,21 @@ async function buildingMain() {
   const B = new THREE.Group(); scene.add(B);
   const r = rng(13 + variant);
   // facade generator: wall along local x, panels on +z face
-  function facade(len, hgt, color, winRule, x0, z0, rotY) {
+  const texL = new THREE.TextureLoader();
+  const ldec = (c) => new Promise(r => texL.load(`assets/decor/${c}.jpg`, t => { t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; r(t); }));
+  const DEC = variant === 0 ? [await ldec('F-11'), await ldec('F-35')] : [await ldec('F-30'), await ldec('F-38')];
+  function facade(len, hgt, color, winRule, x0, z0, rotY, map) {
     const F = new THREE.Group(); F.position.set(x0, 0, z0); F.rotation.y = rotY; B.add(F);
     const pw = 1.5, ph = 1.0, gap = .012;
     const nx = Math.round(len / pw), ny = Math.round(hgt / ph);
     const core = box(len, hgt, .4, new THREE.MeshStandardMaterial({ color: 0x222222 })); at(core, len / 2, hgt / 2, -.2); F.add(core);
-    const pMat = new THREE.MeshPhysicalMaterial({ map: TEX.hpl('#ffffff', 21), roughness: .5, clearcoat: .3, clearcoatRoughness: .4 });
+    const pMat = new THREE.MeshPhysicalMaterial({ map: map || TEX.hpl('#ffffff', 21), roughness: .55, clearcoat: .25, clearcoatRoughness: .45 });
     const inst = new THREE.InstancedMesh(new THREE.BoxGeometry(pw - gap * 2, ph - gap * 2, .012), pMat, nx * ny);
     inst.castShadow = inst.receiveShadow = true;
     const glass = new THREE.MeshPhysicalMaterial({ color: dark ? 0x18222c : 0x6f8798, roughness: .03, metalness: .2, clearcoat: 1, envMapIntensity: 1.3 });
     const warm = new THREE.MeshStandardMaterial({ color: 0x000000, emissive: 0xffb469, emissiveIntensity: 1.6 });
     const frame = new THREE.MeshStandardMaterial({ color: 0x1c1d1f, roughness: .5, metalness: .6 });
-    const m4 = new THREE.Matrix4(), c = new THREE.Color(color);
+    const m4 = new THREE.Matrix4(), c = new THREE.Color(map ? 0xffffff : color);
     let k = 0;
     for (let i = 0; i < nx; i++) for (let j = 0; j < ny; j++) {
       const x = (i + .5) * pw, y = (j + .5) * ph;
@@ -552,7 +555,7 @@ async function buildingMain() {
         m4.makeScale(0, 0, 0);
       } else m4.makeTranslation(x, y, .06);
       inst.setMatrixAt(k, m4);
-      const t = .9 + r() * .2; inst.setColorAt(k, c.clone().multiplyScalar(t)); k++;
+      const t = map ? .94 + r() * .08 : .9 + r() * .2; inst.setColorAt(k, c.clone().multiplyScalar(t)); k++;
     }
     F.add(inst);
     // parapet coping
@@ -562,10 +565,10 @@ async function buildingMain() {
   const H1 = 24, L1 = 36, D1 = 22;
   const winA = (i, j, nx) => j === 0 ? (i % 6 !== 0) : (j % 4 === 1 || j % 4 === 2) && (i % 6 >= 1 && i % 6 <= 3);
   const winB = (i, j) => j === 0 ? true : (j % 4 === 2);
-  facade(L1, H1, cols[0], winA, -L1, 0, 0);                 // front (+z), x from -L1..0
-  facade(D1, H1, cols[1], winB, 0, 0, Math.PI / 2);          // side, along -z from corner
+  facade(L1, H1, cols[0], winA, -L1, 0, 0, DEC[0]);                 // front (+z), x from -L1..0
+  facade(D1, H1, cols[1], winB, 0, 0, Math.PI / 2, DEC[1]);          // side, along -z from corner
   // second lower volume
-  facade(18, 10, cols[1], winB, -L1 - 18, 6, 0);
+  facade(18, 10, cols[1], winB, -L1 - 18, 6, 0, DEC[1]);
   // roof slab
   const roof = box(L1, .3, D1, new THREE.MeshStandardMaterial({ color: 0x777777 })); at(roof, -L1 / 2, H1 + .05, -D1 / 2); B.add(roof);
   const roof2 = box(18, .3, 10, new THREE.MeshStandardMaterial({ color: 0x777777 })); at(roof2, -L1 - 9, 10.05, 1); B.add(roof2);
@@ -689,5 +692,78 @@ async function nodeMain() {
   const pitch = +(Q.get('pitch') ?? .38);
   const dist = s2.length() * .5 / Math.sin(THREE.MathUtils.degToRad(camera.fov / 2)) * 1.1;
   camera.position.set(c2.x, c2.y + Math.sin(pitch) * dist, c2.z + Math.cos(pitch) * dist); camera.lookAt(c2);
+  renderer.render(scene, camera); document.title = 'done';
+}
+
+
+// ================================================================== INTERIORS (real UZHPL decors)
+async function interiorMain() {
+  const kind = NAME.slice(4);
+  const hdr = await new RGBELoader().loadAsync('assets/hdri/studio_small_09.hdr');
+  hdr.mapping = THREE.EquirectangularReflectionMapping; scene.environment = hdr; scene.environmentIntensity = .75;
+  renderer.toneMappingExposure = 1.05;
+  const tl = new THREE.TextureLoader();
+  const dec = (c, rx = 1, ry = 1) => new Promise(r => tl.load(`assets/decor/${c}.jpg`, t => { t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rx, ry); t.anisotropy = 8; r(t); }));
+  const hm = async (c, rx, ry, rough = .5) => new THREE.MeshPhysicalMaterial({ map: await dec(c, rx, ry), roughness: rough, clearcoat: .2, clearcoatRoughness: .5 });
+  const plaster = new THREE.MeshStandardMaterial({ color: 0xeeece8, roughness: .95 });
+  const floorM = new THREE.MeshStandardMaterial({ map: TEX.concrete(), color: 0xd8d6d0, roughness: .7 });
+  const R = 3000, Hh = 2800;
+  const room = new THREE.Group(); scene.add(room);
+  room.add(at(box(R * 2, 20, R * 2, floorM), 0, -10, 0));
+  room.add(at(box(R * 2, Hh, 20, plaster), 0, Hh / 2, -R));
+  room.add(at(box(20, Hh, R * 2, plaster), -R, Hh / 2, 0));
+  if (kind !== 'ceiling') room.add(at(box(R * 2, 20, R * 2, plaster), 0, Hh + 10, 0));
+  const light = new THREE.DirectionalLight(0xfff4e6, 1.6); light.position.set(2500, 4000, 3000); light.castShadow = true;
+  light.shadow.mapSize.set(2048, 2048); Object.assign(light.shadow.camera, { left: -4000, right: 4000, top: 4000, bottom: -4000, near: 10, far: 12000 }); scene.add(light);
+  scene.add(new THREE.AmbientLight(0xffffff, .35));
+  for (const x of [-1500, 0, 1500]) { const l = new THREE.PointLight(0xfff0dd, 9e5, 0, 2); l.position.set(x, Hh - 100, 0); scene.add(l); }
+  const gap = 6;
+  if (kind === 'walls') {
+    const m = await hm('F-35', 1, 1);
+    for (let i = 0; i < 9; i++) room.add(at(box(600 - gap, Hh - 200, 10, m), -2400 + i * 600, Hh / 2, -R + 20));
+    for (let i = 0; i < 9; i++) room.add(at(box(10, Hh - 200, 600 - gap, m), -R + 20, Hh / 2, -2400 + i * 600));
+    room.add(at(box(1800, 750, 800, await hm('F-24', 1, 1, .4)), -800, 375, -1800));
+  } else if (kind === 'ceiling') {
+    const m = await hm('F-38', 1, 1);
+    for (let i = 0; i < 10; i++) for (let j = 0; j < 10; j++) room.add(at(box(600 - gap, 10, 600 - gap, m), -2700 + i * 600, Hh - 5, -2700 + j * 600));
+    for (let i = 0; i < 4; i++) room.add(at(box(80, 20, 2400, new THREE.MeshBasicMaterial({ color: 0xfff6e8 })), -1800 + i * 1200, Hh - 12, -800));
+  } else if (kind === 'furniture') {
+    const front = await hm('F-11', 1, 1, .45), top = await hm('F-54', 2, 1, .4);
+    for (let i = 0; i < 6; i++) { room.add(at(box(600 - gap, 720, 20, front), -2400 + i * 600, 420, -R + 600)); room.add(at(box(600 - gap, 700, 20, front), -2400 + i * 600, 1900, -R + 350)); }
+    room.add(at(box(3600, 40, 640, top), -900, 800, -R + 320));
+    room.add(at(box(3600, 60, 600, new THREE.MeshStandardMaterial({ color: 0x1b1c1e })), -900, 30, -R + 300));
+    room.add(at(box(3600, 500, 10, top), -900, 1300, -R + 25));
+  } else if (kind === 'partitions') {
+    const m = await hm('F-12', 1, 1), door = await hm('F-35', 1, 1);
+    for (let i = 0; i < 3; i++) { room.add(at(box(14, 2600, 2400, m), -1600 + i * 1600, 1300, -1600));
+      room.add(at(box(1600, 2600, 14, m), -2400 + i * 1600, 1300, -400)); room.add(at(box(800, 2100, 16, door), -2400 + i * 1600, 1050, -392)); }
+    room.add(at(box(3600, 40, 1400, new THREE.MeshStandardMaterial({ color: 0x9fb4c4, transparent: true, opacity: .2 })), 0, 2620, -1600));
+  } else if (kind === 'sanitary') {
+    const m = await hm('F-24', 1, 1, .35), d = await hm('F-11', 1, 1, .4), steel = M.steel();
+    for (let i = 0; i < 5; i++) {
+      room.add(at(box(13, 2000, 1500, m), -2400 + i * 1000, 1150, -R + 750));
+      room.add(at(box(980, 2000, 13, i % 2 ? d : m), -1900 + i * 1000, 1150, -R + 1500));
+      for (const z of [-R + 1490, -R + 10]) room.add(at(cyl(15, 15, 150, steel), -2400 + i * 1000, 75, z + 30));
+    }
+    room.add(at(box(5000, 30, 30, steel), -500, 2160, -R + 1500));
+  } else if (kind === 'reception') {
+    const f = await hm('F-32', 1, 1, .3), t = await hm('F-54', 2, 1, .4);
+    room.add(at(box(3000, 1100, 600, f, 20), -600, 550, -1200));
+    room.add(at(box(3200, 40, 700, t), -600, 1120, -1200));
+    room.add(at(box(1200, 760, 500, t), -900, 380, -1500 + 0));
+    const wall = await hm('F-11', 1, 1);
+    for (let i = 0; i < 7; i++) room.add(at(box(600 - gap, Hh - 200, 10, wall), -2100 + i * 600, Hh / 2, -R + 20));
+    room.add(at(box(1600, 160, 20, new THREE.MeshStandardMaterial({ color: 0xf26a1b, emissive: 0x7a2a00 })), -600, 2100, -R + 40));
+  } else if (kind === 'decorative') {
+    const m = await hm('F-38', 1, 1);
+    room.add(at(box(R * 2, Hh, 10, await hm('F-11', 4, 1)), 0, Hh / 2, -R + 15));
+    for (let i = 0; i < 40; i++) room.add(at(box(70, Hh - 300, 60, m), -2700 + i * 140, Hh / 2, -R + 60));
+    room.add(at(box(2200, 450, 900, await hm('F-12', 1, 1)), -600, 225, -1400));
+  }
+  room.traverse(o => { if (o.isMesh) { o.castShadow = o.receiveShadow = true; } });
+  camera.fov = 55; camera.far = 40000; camera.near = 10; camera.aspect = W / H; camera.updateProjectionMatrix();
+  const close = ['furniture', 'sanitary', 'reception', 'decorative', 'partitions'].includes(kind);
+  if (close) { camera.position.set(1400, 1500, 1200); camera.lookAt(-1400, 1050, -2300); }
+  else { camera.position.set(2600, 1500, 2600); camera.lookAt(-1200, kind === 'ceiling' ? 1900 : 1100, -1600); }
   renderer.render(scene, camera); document.title = 'done';
 }

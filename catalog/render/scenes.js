@@ -107,6 +107,12 @@ function rectShape(w, h) { const s = new THREE.Shape(); s.moveTo(0, 0); s.lineTo
 function group(...ch) { const g = new THREE.Group(); ch.forEach(c => g.add(c)); return g; }
 function at(o, x = 0, y = 0, z = 0, rx = 0, ry = 0, rz = 0) { o.position.set(x, y, z); o.rotation.set(rx, ry, rz); return o; }
 const gltfLoader = new GLTFLoader();
+const loadSKF = (name) => new Promise((res, rej) => gltfLoader.load(`assets/skf_${name}/scene.gltf`, g => {
+  const ms = []; g.scene.updateMatrixWorld(true);
+  g.scene.traverse(o => { if (o.isMesh) { o.castShadow = o.receiveShadow = true; ms.push([o, new THREE.Box3().setFromObject(o).getSize(new THREE.Vector3()).length()]); } });
+  const sz = ms.map(m => m[1]).sort((a, b) => a - b); const med = sz[Math.floor(sz.length * .75)] || 1;
+  if (name === 'cnc') for (const [o, l] of ms) if (ms.length > 2 && l > med * 4) o.visible = false;      // drop backdrop domes / ground planes
+  res(g.scene); }, undefined, rej));
 const loadPH = (name) => new Promise((res) => gltfLoader.load(`assets/${name}/${name}.gltf`, g => { g.scene.traverse(o => { if (o.isMesh) { o.castShadow = o.receiveShadow = true; } }); res(g.scene); }));
 
 // ------------------------------------------------------------------ profiles (units: mm)
@@ -119,16 +125,19 @@ function Tprofile(len = 300, a = 80, b = 50, t = 1.5) {
   return at(ext(s, len, M.galv(), .3), 0, 0, -len / 2);
 }
 function bracket(sliding = false) {
-  // base plate (on wall) with anchor hole + arm with slots
-  const t = 2;
-  const base = rectShape(50, 80); base.holes.push(slotPath(25, 40, 6, 5.5));
-  const arm = rectShape(sliding ? 110 : 100, 80);
-  if (sliding) { arm.holes.push(slotPath(70, 25, 40, 3)); arm.holes.push(slotPath(70, 55, 40, 3)); }
-  else { arm.holes.push(slotPath(65, 25, 22, 3)); arm.holes.push(slotPath(65, 55, 22, 3)); }
+  const t = 2.5, H = 90;
+  const base = rectShape(60, H);
+  base.holes.push(slotPath(30, H * .3, 8, 5.5)); base.holes.push(slotPath(30, H * .72, 8, 5.5));
+  const L = sliding ? 140 : 120;
+  const arm = rectShape(L, H);
+  if (sliding) { arm.holes.push(slotPath(95, H * .3, 50, 3)); arm.holes.push(slotPath(95, H * .7, 50, 3)); }
+  else { arm.holes.push(slotPath(90, H * .3, 18, 3)); arm.holes.push(slotPath(90, H * .7, 18, 3)); }
   const g = new THREE.Group();
-  g.add(at(ext(base, t, M.galv(), .2), -25, -40, 0));
-  g.add(at(ext(arm, t, M.galv(), .2), 25 - t, -40, 0, 0, -Math.PI / 2, 0));
-  return g;
+  g.add(at(ext(base, t, M.galv(), .3), -30, 0, 0));
+  g.add(at(ext(arm, t, M.galv(), .3), 30 - t, 0, 0, 0, -Math.PI / 2, 0));
+  const bend = cyl(4, 4, H, M.galv(), 24); at(bend, 30 - 2, H / 2, 2); g.add(bend);
+  g.position.y = -H / 2;
+  return group(g);
 }
 function gasket() {
   const s = rectShape(50, 80); s.holes.push(slotPath(25, 40, 6, 5.5));
@@ -430,9 +439,10 @@ const R = {
   ph_screwdrivers: () => loadPH('screwdrivers_02'), ph_tree1: () => loadPH('island_tree_01'), ph_jac: () => loadPH('jacaranda_tree'),
   drill: () => loadPH('Drill_01'), tape_measure: () => loadPH('measuring_tape_01'), wrench: () => loadPH('combination_wrench'),
   vice: () => loadPH('bench_vice_01'), gloves,
-  riveter, hand_riveter: riveter, laser: laserLevel, saw: circSaw, tracksaw: trackSaw, cnc, router, level: levelTool, clamp, suction,
-  gun: caulkGun, brush, wipes, knife, glasses, ear: earmuffs, mask, boots, hammerdrill: hammerDrill, calipers, square, hygro,
-  deburr, vacuum, drillbit, jig,
+  riveter: () => loadSKF('riveter'), hand_riveter: () => loadSKF('riveter'), laser: laserLevel, saw: () => loadSKF('saw'), tracksaw: () => loadSKF('saw'),
+  cnc: () => loadSKF('cnc'), router, level: () => loadSKF('level'), clamp: () => loadSKF('clamp'), suction,
+  gun: () => loadSKF('gun'), brush, wipes, knife: () => loadSKF('knife'), glasses: () => loadSKF('glasses'), skf_gloves: () => loadSKF('gloves'), ear: earmuffs, mask, boots, hammerdrill: hammerDrill, calipers: () => loadSKF('calipers'), square, hygro,
+  deburr, vacuum, drillbit: () => loadSKF('drillbit'), jig, tape_measure_skf: () => loadSKF('tape'),
 };
 
 // ------------------------------------------------------------------ studio
@@ -452,14 +462,15 @@ async function main() {
   let obj = await R[NAME]();
   const grp = new THREE.Group(); grp.add(obj); scene.add(grp);
   // normalize: fit to unit size, rest on ground
-  let bb = new THREE.Box3().setFromObject(grp); const size = bb.getSize(new THREE.Vector3());
+  const vis = (o) => { const b = new THREE.Box3(); o.updateMatrixWorld(true); o.traverse(m => { if (m.isMesh && m.visible) b.expandByObject(m); }); return b; };
+  let bb = vis(grp); const size = bb.getSize(new THREE.Vector3());
   const k = 1 / Math.max(size.x, size.y, size.z); grp.scale.setScalar(k);
-  bb = new THREE.Box3().setFromObject(grp); const c = bb.getCenter(new THREE.Vector3());
+  bb = vis(grp); const c = bb.getCenter(new THREE.Vector3());
   grp.position.sub(new THREE.Vector3(c.x, bb.min.y, c.z));
   // pose: slight product rotation
   const yaw = +(Q.get('yaw') ?? -0.55), pitch = +(Q.get('pitch') ?? 0.42);
   grp.rotation.y = yaw;
-  bb = new THREE.Box3().setFromObject(grp); const s2 = bb.getSize(new THREE.Vector3()); const c2 = bb.getCenter(new THREE.Vector3());
+  bb = vis(grp); const s2 = bb.getSize(new THREE.Vector3()); const c2 = bb.getCenter(new THREE.Vector3());
   // ground shadow catcher
   const ground = new THREE.Mesh(new THREE.PlaneGeometry(20, 20), new THREE.ShadowMaterial({ opacity: 0.22 }));
   ground.rotation.x = -Math.PI / 2; ground.position.y = bb.min.y; ground.receiveShadow = true; scene.add(ground);

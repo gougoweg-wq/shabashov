@@ -505,6 +505,17 @@ recs = [("Проект прежде монтажа", "Расчёт подсис�
 b.add(title("14", "Рекомендации<br>UZHPL", "Краткие инженерные правила для всех систем.") + '<div style="margin-top:30px">'
       + "".join(rec(f"{i + 1:02d}", n, d, p) for i, (n, d, p) in enumerate(recs)) + '</div>', "РЕКОМЕНДАЦИИ")
 
+# =====================================================================  CREDITS (CC-BY attribution)
+import json as _json
+_cr = _json.load(open(os.path.join(_HERE, "render", "credits.json"))) if os.path.exists(os.path.join(_HERE, "render", "credits.json")) else {}
+_rows = "".join(f'<div class="rec" style="grid-template-columns:1fr 200px;padding:12px 0"><div><h4 style="font-size:16px">{v["title"]}</h4>'
+                f'<p style="font-size:13px">Автор: {v["author"]} · <a href="{v["url"]}" style="color:{DG}">{v["url"]}</a></p></div>'
+                f'<span class="pill" style="justify-self:end;align-self:center">{v["license"]}</span></div>' for v in _cr.values())
+b.add(title("", "Источники<br>3D-моделей", "Часть иллюстраций выполнена на основе 3D-моделей сторонних авторов. Модели используются как визуализация типовых инструментов и не являются рекламой производителей.")
+      + f'<div style="margin-top:30px">{_rows}</div>'
+      + '<div class="note">Модели Poly Haven (дрель, рулетка, перчатки, ключ, деревья, кустарники, рулон ленты) и HDRI-окружения — лицензия CC0. '
+        'Остальные компоненты, узлы и здания смоделированы для UZHPL.</div>', "ИСТОЧНИКИ")
+
 # =====================================================================  16 FULL CYCLE
 cyc = ["PROJECT", "ENGINEERING", "MATERIAL", "PROCESSING", "LOGISTICS", "INSTALLATION", "QUALITY CONTROL", "FINISHED FACADE"]
 ru = ["Проект", "Инженерия", "Материал", "Обработка", "Логистика", "Монтаж", "Контроль качества", "Готовый фасад"]

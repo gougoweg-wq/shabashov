@@ -144,12 +144,20 @@ function anchor(len = 100) {
   return g;
 }
 function rivet(head = '#2b2d31', big = true) {
-  const g = new THREE.Group();
-  const R = big ? 7.5 : 5;
-  g.add(lathe([[0, 0], [R, 0], [R, .6], [R * .8, 1.6], [R * .4, 2.3], [0, 2.5]], M.plastic(head)));
-  g.add(at(cyl(2.5, 2.5, 15, M.alu()), 0, -7.5, 0));
-  g.add(at(cyl(1.3, 1.3, 26, M.steel()), 0, -20, 0));
-  g.add(at(mesh(new THREE.SphereGeometry(1.9, 24, 16), M.steel()), 0, -15.5, 0));
+  // blind rivet: painted dome head, aluminium sleeve with flared end, steel mandrel with ball head
+  const g = new THREE.Group(); const R = big ? 7.5 : 5;
+  const hp = []; for (let i = 0; i <= 16; i++) { const t = i / 16; hp.push([R * Math.cos(t * Math.PI / 2) ** .55, 2.6 * Math.sin(t * Math.PI / 2)]); }
+  g.add(lathe([[2.6, 0], ...hp.map(([x, y]) => [Math.max(x, .001), y])], new THREE.MeshPhysicalMaterial({ color: head, roughness: .35, clearcoat: .8, clearcoatRoughness: .2 }), 96));
+  g.add(lathe([[1.4, 0], [2.5, 0], [2.5, -14], [2.7, -15], [2.2, -15.6], [1.4, -15.6]], M.alu(), 64));
+  g.add(at(cyl(1.35, 1.35, 30, M.steel(), 32), 0, -11, 0));
+  g.add(at(mesh(new THREE.SphereGeometry(1.9, 32, 16), M.steel()), 0, -16.2, 0));
+  g.add(at(mesh(new THREE.TorusGeometry(1.5, .25, 8, 24), M.darkSteel()), 0, 1.5, 0, Math.PI / 2));
+  return g;
+}
+function rivetSet() {
+  const g = new THREE.Group(); const cols = ['#2b2d31', '#8c4a2a', '#d9d6cf', '#8a8f96'];
+  cols.forEach((c, i) => { const r = rivet(c); at(r, i * 22 - 33, 16, (i % 2) * 10, 0, 0, 0); g.add(r); });
+  const lying = rivet('#2b2d31'); at(lying, 0, 2.2, 32, Math.PI / 2 + .02, 0, 1.2); g.add(lying);
   return g;
 }
 function screwPart() {
@@ -200,19 +208,37 @@ function tapeRoll(red = true) {
   if (red) { const lb = mesh(new THREE.CylinderGeometry(70.3, 70.3, 24, 64, 1, true, 0, 1.2), M.plastic('#c62d1f')); at(lb, 0, 12, 0); g.add(lb); }
   return g;
 }
+const LROT = +(Q.get('lrot') ?? -0.55);
+function labelTex(title, sub, dark) {
+  return canvasTex(1024, 512, (g, w, h) => {
+    g.fillStyle = dark ? '#24262a' : '#f4f3f0'; g.fillRect(0, 0, w, h);
+    g.fillStyle = '#F26A1B'; g.fillRect(0, 0, w, 26); g.fillRect(0, h - 26, w, 26);
+    g.fillStyle = dark ? '#fff' : '#1d1f22'; g.font = 'bold 92px Inter, Arial'; g.textAlign = 'center';
+    g.fillText(title, w * .25, h * .52); g.fillText(title, w * .75, h * .52);
+    g.font = '500 40px Inter, Arial'; g.fillStyle = dark ? '#b7bbc0' : '#6b7077';
+    g.fillText(sub, w * .25, h * .68); g.fillText(sub, w * .75, h * .68);
+    g.font = '800 46px Inter, Arial'; g.fillStyle = dark ? '#fff' : '#1d1f22';
+    g.fillText('UZHPL', w * .25, h * .3); g.fillText('UZHPL', w * .75, h * .3);
+  });
+}
 function cartridge() {
   const g = new THREE.Group();
-  g.add(lathe([[0, 0], [24, 0], [24, 200], [0, 200]], M.alu()));
-  const label = mesh(new THREE.CylinderGeometry(24.3, 24.3, 120, 64, 1, true), M.white()); at(label, 0, 100, 0); g.add(label);
-  const band = mesh(new THREE.CylinderGeometry(24.4, 24.4, 14, 64, 1, true), M.orange()); at(band, 0, 150, 0); g.add(band);
-  g.add(at(lathe([[0, 0], [10, 0], [3, 70], [0, 70]], M.plastic('#e8e6e1')), 0, 200, 0));
+  const prof = [[0, 0], [23, 0], [24, 3], [24, 210], [23, 214], [10, 222], [10, 230], [0, 230]];
+  g.add(lathe(prof, new THREE.MeshPhysicalMaterial({ color: 0xd9dde2, metalness: .85, roughness: .25 }), 96));
+  const lab = mesh(new THREE.CylinderGeometry(24.4, 24.4, 150, 96, 1, true), new THREE.MeshPhysicalMaterial({ map: labelTex('ПУ КЛЕЙ', 'фасадный · 600 мл', false), roughness: .4, clearcoat: .5 }));
+  at(lab, 0, 105, 0, 0, LROT, 0); g.add(lab);
+  g.add(at(lathe([[0, 0], [11, 0], [11, 8], [6, 14], [2.2, 80], [0, 80]], M.plastic('#efede8'), 64), 0, 230, 0));
+  g.add(at(lathe([[18, 0], [24.2, 0], [24.2, 8], [18, 8]], M.plastic('#2b2d31')), 0, -2, 0));
   return g;
 }
 function bottle(dark = false) {
   const g = new THREE.Group();
-  g.add(lathe([[0, 0], [30, 0], [32, 4], [32, 120], [28, 132], [12, 140], [12, 150], [0, 150]], dark ? M.plastic('#2b2d31') : M.plastic('#e9e7e2')));
-  const lab = mesh(new THREE.CylinderGeometry(32.3, 32.3, 70, 64, 1, true), dark ? M.white() : M.graphite()); at(lab, 0, 60, 0); g.add(lab);
-  g.add(at(cyl(14, 14, 24, M.orange()), 0, 160, 0));
+  const prof = [[0, 0], [33, 0], [36, 4], [36, 118], [33, 132], [22, 146], [14, 152], [14, 166], [0, 166]];
+  g.add(lathe(prof, new THREE.MeshPhysicalMaterial({ color: dark ? 0x26282c : 0xeceae6, roughness: .32, clearcoat: .6 }), 96));
+  const lab = mesh(new THREE.CylinderGeometry(36.4, 36.4, 84, 96, 1, true), new THREE.MeshPhysicalMaterial({ map: labelTex(dark ? 'ПРАЙМЕР' : 'АКТИВАТОР', dark ? 'для HPL и профилей' : 'подготовка поверхности', !dark), roughness: .35, clearcoat: .5 }));
+  at(lab, 0, 62, 0, 0, LROT, 0); g.add(lab);
+  const cap = lathe([[0, 0], [17, 0], [17.5, 2], [17.5, 26], [15, 30], [0, 30]], M.orange(), 64); at(cap, 0, 164, 0); g.add(cap);
+  for (let i = 0; i < 36; i++) { const r = box(1.2, 22, 1.4, M.orange()); const a2 = i / 36 * Math.PI * 2; at(r, Math.cos(a2) * 17.6, 178, Math.sin(a2) * 17.6, 0, -a2, 0); g.add(r); }
   return g;
 }
 function clip() {
@@ -393,8 +419,15 @@ const R = {
   panel: () => panel(300, 400, 8), panel_groove: grooved, membrane: membraneRoll, insulation,
   lprofile: () => Lprofile(320, 40, 40), tprofile: () => Tprofile(320, 80, 50), vprofile,
   bracket_fixed: () => bracket(false), bracket_sliding: () => bracket(true), anchor: () => anchor(100),
-  rivet: () => rivet(), screw: screwPart, washer, gasket, tape: tapeRoll, epdm: () => tapeRoll(false), cartridge,
+  rivet: rivetSet, rivet_single: () => rivet(), screw: screwPart, washer, gasket, tape: async () => { const t = await loadPH('medical_tape'); t.traverse(o => { if (o.isMesh) o.material = new THREE.MeshPhysicalMaterial({ color: 0x1c1d20, roughness: .55, clearcoat: .3 }); });
+    t.scale.y = .5; const g = new THREE.Group(); g.add(t); const bb = new THREE.Box3().setFromObject(t); const sz = bb.getSize(new THREE.Vector3());
+    const liner = mesh(new THREE.BoxGeometry(sz.x * .9, sz.y * .02, sz.z * .5), new THREE.MeshStandardMaterial({ color: 0xc8261b, roughness: .5 }));
+    liner.position.set(bb.max.x + sz.x * .3, bb.min.y + sz.y * .01, 0); g.add(liner); return g; },
+  epdm: async () => { const t = await loadPH('medical_tape'); t.traverse(o => { if (o.isMesh) o.material = M.rubber(); }); t.scale.y = .6; return t; }, cartridge,
   primer: () => bottle(true), activator: () => bottle(false), clip, dowel: () => anchor(110),
+  ph_bleach: () => loadPH('bleach_bottle'), ph_cleaner: () => loadPH('all_purpose_cleaner'), ph_spray: () => loadPH('lubricant_spray'),
+  ph_tape: () => loadPH('medical_tape'), ph_paint: () => loadPH('spray_paint_bottles'), ph_tin: () => loadPH('cleaner_tin_01'),
+  ph_screwdrivers: () => loadPH('screwdrivers_02'), ph_tree1: () => loadPH('island_tree_01'), ph_jac: () => loadPH('jacaranda_tree'),
   drill: () => loadPH('Drill_01'), tape_measure: () => loadPH('measuring_tape_01'), wrench: () => loadPH('combination_wrench'),
   vice: () => loadPH('bench_vice_01'), gloves,
   riveter, hand_riveter: riveter, laser: laserLevel, saw: circSaw, tracksaw: trackSaw, cnc, router, level: levelTool, clamp, suction,
@@ -509,10 +542,15 @@ async function buildingMain() {
   const canE = box(10, .1, .05, new THREE.MeshStandardMaterial({ color: 0xf26a1b, emissive: dark ? 0x7a2a00 : 0 })); at(canE, -12, 3.45, 3.02); B.add(canE);
   // trees
   const trunkM = new THREE.MeshStandardMaterial({ color: 0x3a3028 }), leafM = new THREE.MeshStandardMaterial({ color: dark ? 0x1f2a22 : 0x55684a, roughness: .9 });
-  for (const [x, z, s] of [[-44, 12, 1], [8, 9, 1.1], [-26, 15, .8]]) {
-    const t = cyl(.18 * s, .25 * s, 4 * s, trunkM, 12); at(t, x, 2 * s, z); scene.add(t);
-    for (let q = 0; q < 6; q++) { const sp = mesh(new THREE.IcosahedronGeometry((1.6 + r()) * s, 1), leafM); at(sp, x + (r() - .5) * 2 * s, (4.6 + r() * 2) * s, z + (r() - .5) * 2 * s); scene.add(sp); }
+  const treeSrc = [await loadPH('island_tree_01'), await loadPH('jacaranda_tree')];
+  for (const [x, z, s, k] of [[-36, 9, 1, 0], [3, 13, 1.1, 1], [-20, 17, .8, 0], [-48, 12, .9, 1]]) {
+    const t = treeSrc[k].clone(); const tb = new THREE.Box3().setFromObject(t); const th = tb.max.y - tb.min.y;
+    t.scale.setScalar(8.5 * s / th); t.position.set(x, 0, z); t.rotation.y = x;
+    if (dark) t.traverse(o => { if (o.isMesh) { o.material = o.material.clone(); o.material.color = new THREE.Color(0x5a6a5e); } });
+    scene.add(t);
   }
+  const shrub = await loadPH('shrub_04');
+  for (let i = 0; i < 14; i++) { const sh = shrub.clone(); const sb = new THREE.Box3().setFromObject(sh); sh.scale.setScalar(1.1 / (sb.max.y - sb.min.y)); sh.position.set(-34 + i * 2.6, 0, 3.2); sh.rotation.y = i; scene.add(sh); }
   // camera — low eye-level, two-point-ish
   const asp = W / H;
   camera.fov = asp < .7 ? 52 : 38; camera.updateProjectionMatrix();
@@ -547,7 +585,7 @@ function seg(len, hgt, o = {}) {
     const top = y1 - (idx < ys.length - 1 ? 8 : 0);
     B(pa, pb, y0, top, PZ + PT / 2, PT, [M.hplCore(), M.hplCore(), M.hplCore(), M.hplCore(), M.hpl(o.color || '#2a2c30'), M.hpl()]);
     if (o.fix !== 'glue' && o.fix !== 'hidden') for (const x of bx) if (x > pa + 15 && x < pb - 15) for (const yy of [y0 + 50, top - 50]) {
-      const rv = rivet(); rv.scale.setScalar(.9); at(rv, x, yy, PZ + PT, Math.PI / 2); g.add(rv); }
+      const rv = rivet(); rv.scale.setScalar(1.6); at(rv, x, yy, PZ + PT, Math.PI / 2); g.add(rv); }
     y0 = y1;
   });
   return g;

@@ -59,7 +59,6 @@ cover = (f'<div style="position:absolute;inset:0">{building(1080, 1920, True, 0)
          f'<div style="width:64px;height:4px;background:{OR}"></div>'
          f'<div style="font-size:92px;font-weight:800;line-height:.95;letter-spacing:-.03em;margin-top:34px">HPL FACADE<br>&amp; INTERIOR<br>SYSTEMS</div>'
          f'<div style="font-size:30px;font-weight:300;margin-top:30px;color:#e2e4e6">Технический каталог</div></div>'
-         f'<div style="position:absolute;right:72px;bottom:300px;width:300px;height:300px;border:1px solid rgba(255,255,255,.4)">{hpl_closeup(300, 300)}</div>'
          f'<div style="position:absolute;left:72px;right:72px;bottom:80px;color:#d4d6d9;display:grid;grid-template-columns:repeat(4,1fr);gap:20px;border-top:1px solid rgba(255,255,255,.25);padding-top:26px;font-size:15px;line-height:1.4">'
          + "".join(f'<div><span style="color:{OR};font-weight:700">0{i + 1}</span><br>{t}</div>' for i, t in enumerate(
              ["Заклёпочная<br>система", "Клеевая<br>система", "Скрытая<br>система", "Интерьерные<br>решения"]))

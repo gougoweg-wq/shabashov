@@ -92,6 +92,10 @@ DEFS = f"""
  <linearGradient id="gShade" x1="0" y1="0" x2="1" y2="0">
   <stop offset="0" stop-color="#000" stop-opacity=".0"/><stop offset="1" stop-color="#000" stop-opacity=".28"/>
  </linearGradient>
+ <linearGradient id="gLit" x1="0" y1="0" x2="1" y2="1">
+  <stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset=".5" stop-color="#fff" stop-opacity=".03"/><stop offset="1" stop-color="#000" stop-opacity=".25"/>
+ </linearGradient>
+ <filter id="fSh" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="9"/></filter>
  <marker id="aBl" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
   <path d="M0 0L10 5L0 10z" fill="{BL}"/></marker>
  <marker id="aOr" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
@@ -235,6 +239,7 @@ def a_tprofile(A, u, v0, v1, d0, flange=40, t=3, half=40):
 
 def a_panel(A, u0, u1, v0, v1, d0, t=8, rivets=None):
     s = A.box(u0, u1, v0, v1, d0, d0 + t, "url(#pHpl)", HPL_S, HPL_T, .9, "#111")
+    s += A.poly([(u0, v0, d0 + t), (u1, v0, d0 + t), (u1, v1, d0 + t), (u0, v1, d0 + t)], "url(#gLit)", "none", 0)
     for (u, v) in rivets or []:
         s += A.dot(u, v, d0 + t, 4.3)
     return s
@@ -242,11 +247,13 @@ def a_panel(A, u0, u1, v0, v1, d0, t=8, rivets=None):
 
 def a_wall(A, u0, u1, v0, v1, d0, d1):
     s = A.box(u0, u1, v0, v1, d0, d1, "url(#pCon)", "url(#pConS)", CON_T, 1)
+    s += A.poly([(u0, v0, d1), (u1, v0, d1), (u1, v1, d1), (u0, v1, d1)], "url(#gLit)", "none", 0)
     return s
 
 
 def a_ins(A, u0, u1, v0, v1, d0, d1):
     s = A.box(u0, u1, v0, v1, d0, d1, "url(#pIns)", "url(#pInsS)", "#E7CE8A", .8)
+    s += A.poly([(u0, v0, d1), (u1, v0, d1), (u1, v1, d1), (u0, v1, d1)], "url(#gLit)", "none", 0)
     # board joints
     mid = (v0 + v1) / 2
     s += A.line((u0, mid, d1), (u1, mid, d1), INS_D, .8)

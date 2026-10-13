@@ -7,9 +7,12 @@ from lib import *
 def exploded(system="rivet", W=936, H=980, numbers=True, compact=False):
     """Exploded axonometric of a ventilated facade. Layers inside -> outside.
     system: rivet | glue | hidden | screw | vent"""
-    A = Axo(640, 160, 0.92)
+    A = Axo(585, 120, 0.80)
     g = ""
     vh = 640          # visible height
+    sx0, sy0 = A.p(-80, vh + 30, 420); sx1, sy1 = A.p(430, vh + 30, -40)
+    g += (f'<ellipse cx="{(sx0+sx1)/2:.0f}" cy="{(sy0+sy1)/2 + 20:.0f}" rx="{abs(sx1-sx0)/2:.0f}" ry="40" '
+          f'fill="#000" opacity=".14" filter="url(#fSh)"/>')
     # 1 wall
     g += a_wall(A, 0, 430, 0, vh, -40, 0)
     # anchors drilled holes shading
@@ -179,10 +182,13 @@ def building(W=936, H=1100, dark=False, variant=0, warm=True):
     return svg(W, H, g, extra='preserveAspectRatio="xMidYMid slice" style="display:block;height:100%"')
 
 
+from building3d import building  # noqa: E402,F811
+
+
 def hpl_closeup(W=500, H=500):
     """Close-up of HPL panel joint + rivet heads + corner, in axonometry."""
     A = Axo(250, 70, 1.6, U=(0.75, 0.32), D=(-0.6, 0.34))
-    g = rect(0, 0, W, H, "#eceae6", "none", 0)
+    g = rect(0, 0, W, H, "#3a3d42", "none", 0)
     g += a_panel(A, -60, 140, 0, 160, 0, 10, [(20, 30), (110, 30), (20, 130), (110, 130)])
     g += a_panel(A, -60, 140, 168, 330, 0, 10, [(20, 198), (110, 198), (20, 300), (110, 300)])
     return svg(W, H, g, extra='preserveAspectRatio="xMidYMid slice" style="display:block;height:100%"')

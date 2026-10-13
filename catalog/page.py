@@ -93,6 +93,7 @@ h2.sec::before {{ content: ""; width: 26px; height: 3px; background: {OR}; }}
   border-width: 0 3px 3px 0; transform: rotate(45deg); }}
 .ck h4 {{ font-size: 18px; font-weight: 700; }} .ck p {{ font-size: 14px; color: {DG}; margin-top: 3px; line-height: 1.35; }}
 .ck .m {{ font-size: 11px; letter-spacing: .14em; color: {MG}; text-transform: uppercase; text-align: right; }}
+a.toc-row, a.pg {{ color: inherit; text-decoration: none; }}
 .toc-row {{ display: grid; grid-template-columns: 90px 1fr 80px; padding: 17px 0; border-bottom: 1px solid #3b3e43; align-items: baseline; }}
 .toc-row .a {{ color: {OR}; font-size: 22px; font-weight: 300; }} .toc-row .b {{ font-size: 21px; font-weight: 600; letter-spacing: .01em; }}
 .toc-row .c {{ text-align: right; color: #8b9096; font-size: 15px; }}
@@ -110,20 +111,29 @@ def logo(white=False, claim=True, size=None):
 class Book:
     def __init__(self):
         self.pages = []
+        self.anchors = {}
 
     def add(self, body, tag="ФАСАДНЫЕ СИСТЕМЫ HPL", dark=False, bare=False, cls=""):
         n = len(self.pages) + 1
         hd = "" if bare else f'<div class="hd">{logo(dark)}<div class="tag">{tag}</div></div>'
         ft = "" if bare else (f'<div class="ft"><span class="pg">{n:02d}</span>'
                               f'<span><b>UZHPL</b> &nbsp;|&nbsp; HPL FACADE &amp; INTERIOR SYSTEMS</span><span>UZHPL.UZ</span></div>')
-        self.pages.append(f'<section class="page{" dark" if dark else ""} {cls}">{hd}{body}{ft}</section>')
+        import re
+        for m in re.finditer(r'<div class="(?:n|big-n)">([0-9.]+)</div>', body):
+            self.anchors.setdefault(m.group(1), n)
+        ft = ft.replace(f'<span class="pg">{n:02d}</span>', f'<a class="pg" href="#p2">{n:02d}</a>')
+        self.pages.append(f'<section id="p{n}" class="page{" dark" if dark else ""} {cls}">{hd}{body}{ft}</section>')
         return n
 
     def html(self):
+        import re
+        body = "".join(self.pages)
+        body = re.sub(r'#sec-([0-9.]+)"', lambda m: f'#p{self.anchors.get(m.group(1), 2)}"', body)
+        body = re.sub(r'\{\{pg:([0-9.]+)\}\}', lambda m: f'{self.anchors.get(m.group(1), 0):02d}', body)
         return (f'<!doctype html><html lang="ru"><head><meta charset="utf-8">'
                 f'<meta name="viewport" content="width=device-width,initial-scale=1">'
                 f'<title>UZHPL Технический каталог</title><style>{CSS}</style></head><body>'
-                + "".join(self.pages) + "</body></html>")
+                + body + "</body></html>")
 
 
 def title(n, h, sub="", kicker=""):

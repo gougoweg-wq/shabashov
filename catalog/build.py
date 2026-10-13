@@ -41,8 +41,8 @@ def full_photo(caption, sub, dark=True, variant=0):
 
 
 def divider(n, name, sub, items):
-    rows = "".join(f'<div class="toc-row"><span class="a">{n}.{i + 1}</span><span class="b">{t}</span><span class="c"></span></div>'
-                   for i, t in enumerate(items))
+    rows = "".join(f'<a class="toc-row" href="#sec-{n}.{i + 1}"><span class="a">{n}.{i + 1}</span><span class="b">{t}</span>'
+                   f'<span class="c">стр. {{{{pg:{n}.{i + 1}}}}}</span></a>' for i, t in enumerate(items))
     body = (f'<div style="margin-top:150px"><div class="big-n">{n}</div>'
             f'<div style="font-size:84px;font-weight:800;line-height:.98;text-transform:uppercase;margin-top:40px;letter-spacing:-.02em">{name}</div>'
             f'<div style="font-size:24px;color:#b8bcc1;margin-top:26px;max-width:760px;line-height:1.45">{sub}</div>'
@@ -71,7 +71,7 @@ toc = [("01", "О компании UZHPL"), ("02", "Как устроен вен
        ("07", "Механическая система (винты)"), ("08", "Обработка HPL"), ("09", "Фасадные узлы"),
        ("10", "Интерьерные системы"), ("11", "Интерьерные узлы"), ("12", "Инструменты UZHPL"),
        ("13", "Контроль качества"), ("14", "Рекомендации UZHPL"), ("15", "Полный цикл UZHPL")]
-rows = "".join(f'<div class="toc-row"><span class="a">{a}</span><span class="b">{t}</span><span class="c">—</span></div>' for a, t in toc)
+rows = "".join(f'<a class="toc-row" href="#sec-{a}"><span class="a">{a}</span><span class="b">{t}</span><span class="c">стр. {{{{pg:{a}}}}}</span></a>' for a, t in toc)
 b.add(f'<div style="margin-top:90px"><div class="chip" style="color:{OR}">СОДЕРЖАНИЕ</div>'
       f'<div style="font-size:72px;font-weight:800;margin-top:20px;line-height:1">НАВИГАЦИЯ<br>ПО КАТАЛОГУ</div>'
       f'<div style="margin-top:70px;border-top:1px solid #3b3e43">{rows}</div>'
@@ -328,7 +328,7 @@ full_photo("Скрытый<br>фасад", "Максимально чистая 
 
 # =====================================================================  08 SCREW
 divider("07", "Механическая<br>система", "Панель крепится к подсистеме фасадными винтами с окрашенной головкой. Видимый механический крепёж.",
-        ["Конструкция", "Компоненты и деталь", "Узлы", "Монтаж"])
+        ["Конструкция", "Компоненты и крепёжный узел", "Узлы и монтаж"])
 b.add(title("07.1", "Механическая<br>система (винты)", "", "КОНСТРУКЦИЯ")
       + f'<div class="fig">{numbered_expl("screw", ["wall", "bracket", "ins", "mem", "lprof", "tprof", "panel", "rivet"], 900)}</div>'
       + legend([("Несущая стена", ""), ("Кронштейн", ""), ("Утеплитель", ""), ("Мембрана", ""), ("L-профиль", ""),

@@ -96,6 +96,21 @@ DEFS = f"""
   <stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset=".5" stop-color="#fff" stop-opacity=".03"/><stop offset="1" stop-color="#000" stop-opacity=".25"/>
  </linearGradient>
  <filter id="fSh" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="9"/></filter>
+ <linearGradient id="gBody" x1="0" y1="0" x2="0" y2="1">
+  <stop offset="0" stop-color="#5a5e65"/><stop offset=".18" stop-color="#3a3d42"/><stop offset=".7" stop-color="#232528"/><stop offset="1" stop-color="#141517"/>
+ </linearGradient>
+ <linearGradient id="gBody2" x1="0" y1="0" x2="1" y2="0">
+  <stop offset="0" stop-color="#202226"/><stop offset=".45" stop-color="#4a4e55"/><stop offset="1" stop-color="#1a1b1e"/>
+ </linearGradient>
+ <linearGradient id="gOrT" x1="0" y1="0" x2="0" y2="1">
+  <stop offset="0" stop-color="#ff9a55"/><stop offset=".35" stop-color="#F26A1B"/><stop offset="1" stop-color="#b8480c"/>
+ </linearGradient>
+ <radialGradient id="gSpec" cx=".3" cy=".25" r=".7">
+  <stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset=".4" stop-color="#fff" stop-opacity=".08"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>
+ </radialGradient>
+ <filter id="fSoft" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="5"/></filter>
+ <filter id="fDrop" x="-20%" y="-20%" width="140%" height="150%">
+  <feDropShadow dx="0" dy="5" stdDeviation="4" flood-color="#000" flood-opacity=".28"/></filter>
  <marker id="aBl" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
   <path d="M0 0L10 5L0 10z" fill="{BL}"/></marker>
  <marker id="aOr" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">

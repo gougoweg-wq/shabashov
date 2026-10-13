@@ -2,8 +2,9 @@
 """Tool drawings — flat technical product style (graphite body, steel, orange accent)."""
 from lib import *
 
-B = "#2B2D31"   # tool body
-B2 = "#45484E"
+B = "url(#gBody)"   # tool body
+B2 = "url(#gBody2)"
+OR = "url(#gOrT)"
 
 
 def tool(kind, W=240, H=160):
@@ -118,4 +119,5 @@ def tool(kind, W=240, H=160):
     elif kind == "wrench":
         s += pl([(50, 120), (180, 50)], "#9aa0a7", 14) + f'<circle cx="190" cy="44" r="18" fill="#9aa0a7" stroke="{GR}"/>'
         s += f'<circle cx="190" cy="44" r="8" fill="#fff"/>' + pl([(50, 120), (90, 98)], OR, 14)
-    return svg(W, H, s)
+    sh = f'<ellipse cx="{W/2}" cy="{H-12}" rx="{W*.36}" ry="7" fill="#000" opacity=".22" filter="url(#fSoft)"/>'
+    return svg(W, H, sh + f'<g filter="url(#fDrop)">{s}</g>')

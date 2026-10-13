@@ -298,7 +298,8 @@ def comp(kind, W=240, H=170):
         g += f'<ellipse cx="{cx}" cy="{cy}" rx="48" ry="48" fill="#1e1f22" stroke="#000"/>'
         g += f'<ellipse cx="{cx}" cy="{cy}" rx="34" ry="34" fill="url(#gSteel)" stroke="{GR}"/>'
         g += f'<circle cx="{cx}" cy="{cy}" r="10" fill="#fff" stroke="{GR}"/>'
-    return svg(W, H, g)
+    sh = f'<ellipse cx="{W/2}" cy="{H-10}" rx="{W*.34}" ry="7" fill="#000" opacity=".2" filter="url(#fSoft)"/>'
+    return svg(W, H, sh + f'<g filter="url(#fDrop)">{g}</g>')
 
 
 # =========================================================== mini icons for process steps (line style)

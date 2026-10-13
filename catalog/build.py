@@ -49,7 +49,7 @@ def grid(items, cols=2, gap=16):
 
 
 def photo3d(name, pos="center"):
-    return f'<img src="img/{name}.png" alt="" style="width:100%;height:100%;object-fit:cover;object-position:{pos};display:block">'
+    return f'<img src="img/{name}.jpg" alt="" style="width:100%;height:100%;object-fit:cover;object-position:{pos};display:block">'
 
 
 N3D = {"outer_corner": "n_outer_corner", "inner_corner": "n_inner_corner", "window_reveal": "n_window", "window_head": "n_window",

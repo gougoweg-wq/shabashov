@@ -1,0 +1,652 @@
+# -*- coding: utf-8 -*-
+"""Build the UZHPL technical catalog (9:16) -> uzhpl-catalog.html"""
+from page import *
+from draw import *
+from sections import *
+from tools import tool as _svg_tool
+import os
+from draw import comp as _svg_comp
+
+_HERE = os.path.dirname(os.path.abspath(__file__))
+
+
+def _img(prefix, kind, fallback, W, H):
+    p = f"img/{prefix}_{kind}.png"
+    if os.path.exists(os.path.join(_HERE, p)):
+        return f'<img src="{p}" alt="" style="width:100%;height:100%;object-fit:contain;display:block">'
+    return fallback(kind, W, H)
+
+
+def comp(kind, W=240, H=170):
+    return _img("c", kind, _svg_comp, W, H)
+
+
+def tool(kind, W=240, H=160):
+    if kind.startswith("c:"):
+        return comp(kind[2:], W, H)
+    return _img("t", kind, _svg_tool, W, H)
+
+S3D = {"mark": "t:laser", "bracket": "c:bracket_fixed", "ins": "c:insulation", "mem": "c:membrane", "profiles": "c:lprofile",
+       "hplprep": "t:saw", "panel": "t:suction", "rivet": "t:riveter", "geom": "t:level", "activator": "c:activator",
+       "primer": "c:primer", "tape": "c:tape", "glue": "t:gun", "press": "t:clamp", "clip": "c:clip", "screw": "c:screw"}
+
+
+def vis(k):
+    k = S3D.get(k, k)
+    if k.startswith("t:"):
+        return f'<div style="height:110px;width:100%;padding:6px">{tool(k[2:])}</div>'
+    if k.startswith("c:"):
+        return f'<div style="height:110px;width:100%;padding:6px">{comp(k[2:])}</div>'
+    return mini(k)
+
+
+b = Book()
+P = "ПО ПРОЕКТУ"
+
+
+def expl(system, H=900):
+    A, g, pts = exploded(system)
+    return A, g, pts
+
+
+def numbered_expl(system, keys, H=860):
+    A, g, pts = exploded(system)
+    for i, k in enumerate(keys):
+        x, y = A.p(*pts[k])
+        side = -1 if x < 420 else 1
+        tx, ty = x + side * 44, y - 30
+        g += (f'<line x1="{x:.0f}" y1="{y:.0f}" x2="{tx:.0f}" y2="{ty:.0f}" stroke="{GR}" stroke-width="1"/>'
+              f'<circle cx="{x:.0f}" cy="{y:.0f}" r="3.5" fill="{GR}"/>' + num(tx + side * 14, ty, i + 1, 16))
+    return svg(936, H, g)
+
+
+def grid(items, cols=2, gap=16):
+    return f'<div class="cards" style="grid-template-columns:repeat({cols},1fr);gap:{gap}px">{"".join(items)}</div>'
+
+
+def photo3d(name, pos="center"):
+    return f'<img src="img/{name}.jpg" alt="" style="width:100%;height:100%;object-fit:cover;object-position:{pos};display:block">'
+
+
+N3D = {"outer_corner": "n_outer_corner", "inner_corner": "n_inner_corner", "window_reveal": "n_window", "window_head": "n_window",
+       "window_sill": "n_window", "base": "n_base", "parapet": "n_parapet", "top": "n_parapet", "hjoint": "n_hjoint", "vjoint": "n_vjoint"}
+
+
+def photo3d_c(name):
+    return f'<img src="img/{name}.png" alt="" style="width:100%;height:100%;max-height:420px;object-fit:contain;display:block">'
+
+
+def photo(dark, variant):
+    return photo3d(("b_dark" if dark else "b_day") + str(variant))
+
+
+def full_photo(caption, sub, dark=True, variant=0):
+    body = (f'<div style="position:absolute;inset:0">{photo(dark, variant)}</div>'
+            f'<div style="position:absolute;left:72px;right:72px;bottom:150px;color:#fff">'
+            f'<div class="chip" style="color:{OR}">ГОТОВЫЙ РЕЗУЛЬТАТ</div>'
+            f'<div style="font-size:76px;font-weight:800;line-height:1;margin-top:16px;text-transform:uppercase">{caption}</div>'
+            f'<div style="font-size:22px;margin-top:20px;color:#d4d6d9;max-width:720px;line-height:1.45">{sub}</div></div>'
+            f'<div style="position:absolute;top:64px;left:72px">{logo(True)}</div>'
+            f'<div style="position:absolute;right:72px;top:72px;font-size:12px;color:#c9ccd0;letter-spacing:.2em">ВИЗУАЛИЗАЦИЯ</div>')
+    b.add(body, bare=True, cls="dark")
+
+
+def divider(n, name, sub, items):
+    rows = "".join(f'<a class="toc-row" href="#sec-{n}.{i + 1}"><span class="a">{n}.{i + 1}</span><span class="b">{t}</span>'
+                   f'<span class="c">стр. {{{{pg:{n}.{i + 1}}}}}</span></a>' for i, t in enumerate(items))
+    body = (f'<div style="margin-top:150px"><div class="big-n">{n}</div>'
+            f'<div style="font-size:84px;font-weight:800;line-height:.98;text-transform:uppercase;margin-top:40px;letter-spacing:-.02em">{name}</div>'
+            f'<div style="font-size:24px;color:#b8bcc1;margin-top:26px;max-width:760px;line-height:1.45">{sub}</div>'
+            f'<div style="margin-top:80px;border-top:1px solid #3b3e43">{rows}</div></div>')
+    b.add(body, f"ГЛАВА {n}", dark=True)
+
+
+# =====================================================================  01 COVER
+cover = (f'<div style="position:absolute;inset:0">{photo3d('b_cover')}</div>'
+         f'<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(29,31,34,.92) 0%,rgba(29,31,34,.35) 34%,rgba(29,31,34,0) 55%,rgba(29,31,34,.88) 84%)"></div>'
+         f'<div style="position:absolute;left:72px;top:72px">{logo(True, True, 56)}</div>'
+         f'<div style="position:absolute;right:72px;top:84px;color:#c9ccd0;font-size:13px;letter-spacing:.3em;text-align:right;line-height:1.7">ТЕХНИЧЕСКИЙ КАТАЛОГ<br>2026 — 2027</div>'
+         f'<div style="position:absolute;left:72px;top:250px;color:#fff;max-width:900px">'
+         f'<div style="width:64px;height:4px;background:{OR}"></div>'
+         f'<div style="font-size:92px;font-weight:800;line-height:.95;letter-spacing:-.03em;margin-top:34px">HPL FACADE<br>&amp; INTERIOR<br>SYSTEMS</div>'
+         f'<div style="font-size:30px;font-weight:300;margin-top:30px;color:#e2e4e6">Технический каталог</div></div>'
+         f'<div style="position:absolute;left:72px;right:72px;bottom:80px;color:#d4d6d9;display:grid;grid-template-columns:repeat(4,1fr);gap:20px;border-top:1px solid rgba(255,255,255,.25);padding-top:26px;font-size:15px;line-height:1.4">'
+         + "".join(f'<div><span style="color:{OR};font-weight:700">0{i + 1}</span><br>{t}</div>' for i, t in enumerate(
+             ["Заклёпочная<br>система", "Клеевая<br>система", "Скрытая<br>система", "Интерьерные<br>решения"]))
+         + '</div>')
+b.add(cover, bare=True, cls="dark")
+
+# =====================================================================  TOC
+toc = [("01", "О компании и панели UZHPL"), ("02", "Как устроен вентилируемый фасад"), ("03", "Фасадные системы — обзор"),
+       ("04", "Заклёпочная система"), ("05", "Клеевая система"), ("06", "Скрытая система"),
+       ("07", "Механическая система (винты)"), ("08", "Обработка HPL"), ("09", "Фасадные узлы"),
+       ("10", "Интерьерные системы"), ("11", "Интерьерные узлы"), ("12", "Инструменты UZHPL"),
+       ("13", "Контроль качества"), ("14", "Рекомендации UZHPL"), ("15", "Как начать проект"), ("16", "Полный цикл UZHPL")]
+rows = "".join(f'<a class="toc-row" href="#sec-{a}"><span class="a">{a}</span><span class="b">{t}</span><span class="c">стр. {{{{pg:{a}}}}}</span></a>' for a, t in toc)
+b.add(f'<div style="margin-top:90px"><div class="chip" style="color:{OR}">СОДЕРЖАНИЕ</div>'
+      f'<div style="font-size:72px;font-weight:800;margin-top:20px;line-height:1">НАВИГАЦИЯ<br>ПО КАТАЛОГУ</div>'
+      f'<div style="margin-top:70px;border-top:1px solid #3b3e43">{rows}</div>'
+      f'<div class="note" style="color:#9aa0a7;margin-top:40px">Все размеры, шаги и нагрузки, обозначенные «ПО ПРОЕКТУ», «ПО РАСЧЁТУ» или «УТОЧНЯЕТСЯ НА ОБЪЕКТЕ», '
+      f'определяются проектом фасада и инструкциями производителей панели и крепежа. Каталог не заменяет проект.</div></div>',
+      "СОДЕРЖАНИЕ", dark=True)
+
+# =====================================================================  02 ABOUT
+chain = ["ПРОЕКТ", "ИНЖЕНЕРИЯ", "ОБРАБОТКА", "ПОСТАВКА", "МОНТАЖ", "КОНТРОЛЬ"]
+chain_svg = ""
+for i, t in enumerate(chain):
+    x = 20 + i * 152
+    chain_svg += rect(x, 40, 132, 132, "#fff" if i else GR, GR if i else GR, 1.2)
+    chain_svg += label(x + 16, 72, f"0{i + 1}", 22, "start", 300, OR)
+    chain_svg += label(x + 16, 150, t, 13, "start", 800, "#fff" if not i else GR, 1)
+    if i < 5:
+        chain_svg += arrow(x + 134, 106, x + 150, 106, OR, 2)
+chain_svg += pl([(86, 172), (86, 214), (850, 214), (850, 172)], OR, 1.4, 'stroke-dasharray="5 5"')
+chain_svg += label(468, 240, "ОДИН ПОДРЯДЧИК · ОДНА ОТВЕТСТВЕННОСТЬ · ЕДИНЫЙ СТАНДАРТ", 12, "middle", 700, MG, 2)
+caps = [("HPL-панели", "Фасадные и интерьерные компакт-панели, подбор декора и толщины", comp("panel")),
+        ("Инженерия", "Подбор системы, расчёт подсистемы, монтажные карты", mini("geom")),
+        ("Обработка и ЧПУ", "Раскрой, сверление, фрезерование, кромки", tool("cnc")),
+        ("Техническая подготовка", "Маркировка, раскладка, комплектация по узлам", mini("hplprep")),
+        ("Логистика", "Комплектная поставка панелей и подсистемы на объект", comp("insulation")),
+        ("Монтаж", "Бригады, обученные по технологии систем HPL", mini("rivet")),
+        ("Контроль качества", "Проверка на каждом этапе, фотофиксация, журнал", mini("final")),
+        ("Сервис полного цикла", "От идеи фасада до сдачи объекта", mini("clean"))]
+b.add(title("01", "О компании<br>UZHPL", "Интегратор HPL-панелей с полным циклом применения: материал, инженерия, обработка, подсистема, монтаж и контроль — в одной системе.")
+      + f'<div class="fig">{svg(936, 260, chain_svg)}</div>'
+      + '<div class="rule"></div><h2 class="sec">Инженерный подход</h2>'
+      + grid([card("", n, d, im, h=120, g=True) for (n, d, im) in caps], 4, 14)
+      + f'<div class="rule"></div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:30px">'
+      + "".join(f'<div><div style="font-size:40px;font-weight:300;color:{OR}">{a}</div><div style="font-size:17px;font-weight:700;margin-top:8px">{t}</div>'
+                f'<div style="font-size:14px;color:{DG};margin-top:6px;line-height:1.4">{d}</div></div>'
+                for a, t, d in [("01/", "ПРОЕКТ", "Подбираем решение под архитектурную задачу"),
+                                ("02/", "РЕШЕНИЕ", "Полный цикл: от расчёта до монтажа вентилируемого фасада"),
+                                ("03/", "КАЧЕСТВО", "Технический надзор на каждом этапе проекта")])
+      + '</div>', "О КОМПАНИИ")
+
+# =====================================================================  01.x PRODUCT (data from the UZHPL HPL catalog 2026-2027)
+layers = [("UV Film Grade 6", "Защита от выгорания (EN 438-2)"), ("Deco Paper", "Декоративный слой — цвет и текстура"),
+          ("Melamine Resin", "Прочность поверхности"), ("Kraft Paper", "Основа — задаёт толщину панели"),
+          ("Phenolic Resin", "Водостойкость и плотность")]
+layer_cols = ["#e9eef2", "#8a4a2a", "#d8d2c4", "#b88a52", "#5a3b22"]
+lay = ""
+for i, ((n, d), c) in enumerate(zip(layers, layer_cols)):
+    y = 40 + i * 74
+    lay += rect(40, y, 300, 54 if i != 3 else 54, c, GR, .8) + label(380, y + 24, n, 18, "start", 800, GR) + label(380, y + 46, d, 14, "start", 400, DG)
+    lay += ln(340, y + 27, 370, y + 27, GR, 1)
+lay += label(40, 440, "ПРЕССОВАНИЕ 1430 PSI · 150 °C", 13, "start", 700, OR, 2)
+params = [("Плотность", "1450–1500 кг/м³"), ("Толщина фасадных панелей", "6 / 8 / 10 мм"), ("Водопоглощение", "≤ 6 %"),
+          ("Светостойкость", "EN 438-2 Grade 6"), ("Пожарный класс", "B-s1, d0"), ("Экологичность", "E1 / E0"),
+          ("Прочность на изгиб", "97 МПа"), ("Ударопрочность", "без повреждений"), ("Термостойкость", "−40 … +80 °C"),
+          ("Нагрев на солнце", "средний"), ("Срок службы", "20+ лет"), ("Стандарт", "EN 438")]
+ptab = "".join(f'<div class="rec" style="grid-template-columns:1fr auto;padding:13px 0"><h4 style="font-size:17px;font-weight:500;color:{DG}">{a}</h4><h4 style="font-size:19px">{v}</h4></div>' for a, v in params)
+b.add(title("01.1", "Панель<br>FAÇADE UZHPL", "Компактная HPL-панель высокого давления с УФ-стабилизированным финишным слоем для фасадов. Не требует обработки после монтажа.", "ПРОДУКТ")
+      + f'<div style="display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:40px"><div><h2 class="sec">Структура панели</h2>{svg(700, 470, lay)}'
+      + f'<div style="height:330px;margin-top:20px;background:{XL};display:flex;align-items:center;justify-content:center;padding:20px">{comp("panel")}</div></div>'
+      + f'<div><h2 class="sec">Технические параметры</h2>{ptab}</div></div>'
+      + '<div class="note">Параметры — по данным технического каталога UZHPL HPL 2026–2027; подтверждаются протоколами испытаний. Копии сертификатов — по запросу.</div>', "ПРОДУКТ")
+
+_dec = [l.split() for l in open(os.path.join(_HERE, "img", "decor", "list.txt")) if l.strip()]
+dcards = "".join(f'<div><div style="height:178px;background:url(img/decor/{c}.jpg) center/cover"></div>'
+                 f'<div style="font-size:12px;color:{OR};font-weight:700;letter-spacing:.12em;margin-top:8px">{c} · {g.upper()}</div>'
+                 f'<div style="font-size:16px;font-weight:700;margin-top:2px">{n.replace("_", " ")}</div></div>' for _, c, n, g in _dec)
+surf = [("Матовая", "MATT", "Без бликов, не оставляет отпечатков"), ("Рифлёная", "TEXTURED", "Рельеф, скрывает мелкие повреждения"),
+        ("Глянцевая", "GLOSS", "Максимальная насыщенность цвета"), ("Под камень", "STONE", "Мрамор, гранит, бетон, сланец"),
+        ("Под дерево", "WOOD", "Дуб, орех, тик, ясень"), ("Под кожу", "LEATHER", "Мягкая зернистая фактура")]
+b.add(title("01.2", "Декоры<br>и поверхности", "Более 1000 декоров: однотонные, камень и бетон, дерево, металл и текстиль. Ниже — избранное из каталога UZHPL.", "ДЕКОРЫ")
+      + f'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:18px 16px;margin-top:34px">{dcards}</div>'
+      + '<div class="rule"></div><h2 class="sec">Финиш поверхности</h2>'
+      + '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">' + "".join(
+          f'<div class="card g" style="padding:14px"><h4 style="margin:0;font-size:16px">{a} <span style="color:{OR};font-size:11px;letter-spacing:.14em">{e}</span></h4><p>{d}</p></div>' for a, e, d in surf) + '</div>'
+      + '<div class="note">Наличие финиша для конкретного декора и актуальные остатки — уточняйте у менеджера. Образцы декоров — по запросу.</div>', "ДЕКОРЫ")
+
+fm = [("Минимальный", "915 × 2135", "1,954"), ("Популярный", "1220 × 2800", "3,416"), ("Популярный", "1220 × 3050", "3,721"), ("Максимальный", "1830 × 4270", "7,814")]
+cmp_rows = [("Вес, кг/м²", "7–12", "4–6", "25–35", "40–80"), ("Монтаж", "Простой", "Простой", "Средний", "Сложный"),
+            ("Светостойкость", "Высокая", "Низкая", "Средняя", "Высокая"), ("Нагрев на солнце", "Низкий", "Сильный", "Средний", "Сильный"),
+            ("Цена", "Средняя", "Низкая", "Средняя", "Высокая"), ("Ремонтопригодность", "Замена панели", "Замена кассеты", "Сложно", "Сложно"),
+            ("Цветовой выбор", "1000+ декоров", "RAL-палитра", "Ограничен", "Натуральный")]
+th = "".join(f'<th style="text-align:left;padding:12px 10px;font-size:13px;letter-spacing:.12em;{"background:" + OR + ";color:#fff" if i == 1 else "color:" + MG}">{h}</th>' for i, h in enumerate(["ПАРАМЕТР", "HPL", "АКП", "ФИБРОЦЕМЕНТ", "КАМЕНЬ"]))
+tb = "".join("<tr>" + "".join(f'<td style="padding:13px 10px;border-bottom:1px solid {LG};font-size:16px;{"font-weight:700;background:#fff4ec" if i == 1 else ""}">{c}</td>' for i, c in enumerate(r)) + "</tr>" for r in cmp_rows)
+b.add(title("01.3", "Форматы<br>и сравнение", "Стандартные листы и раскрой под проект. Почему HPL выигрывает у альтернатив.", "ФОРМАТЫ")
+      + '<h2 class="sec" style="margin-top:40px">Размерная сетка</h2><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">' + "".join(
+          f'<div class="card g" style="padding:18px"><div class="meta" style="margin:0">{a}</div><div style="font-size:26px;font-weight:800;margin-top:8px">{b2}</div><p>мм · {c} м²</p></div>' for a, b2, c in fm) + '</div>'
+      + f'<p style="font-size:16px;color:{DG};margin-top:16px">Толщины: 3 · 4 · 6 · 8 · 10 · 12 · 16 · 18 · 25 мм. Фасадные панели — 6 / 8 / 10 мм; другие толщины — под заказ. Возможен раскрой и фигурная обработка под проект.</p>'
+      + f'<div class="rule"></div><h2 class="sec">HPL против альтернатив</h2><table style="width:100%;border-collapse:collapse"><tr>{th}</tr>{tb}</table>'
+      + '<div class="note">Данные — усреднённые по рынку фасадных материалов (по каталогу UZHPL HPL 2026–2027).</div>', "ФОРМАТЫ")
+
+# =====================================================================  03 HOW VENT FACADE WORKS
+vk = ["wall", "bracket", "ins", "mem", "lprof", "tprof", "gap", "panel"]
+b.add(title("02", "Как устроен<br>вентилируемый фасад", "Слои — от несущей стены наружу. Каждый слой выполняет одну задачу.")
+      + f'<div class="fig">{numbered_expl("vent", vk, 900)}</div>'
+      + legend([("Несущая стена", "основание — проверка по проекту"), ("Кронштейн", "несущий / опорный, с терморазрывом"),
+                ("Утеплитель", "минеральная вата, НГ"), ("Ветрозащитная мембрана", "паропроницаемая"),
+                ("L-профиль", "вертикальная подсистема"), ("T-профиль", "рядовой стык панелей"),
+                ("Вентилируемый зазор", "ширина — ПО РАСЧЁТУ"), ("HPL-панель", "толщина и формат — ПО ПРОЕКТУ")]),
+      "ВЕНТИЛИРУЕМЫЙ ФАСАД")
+b.add(title("02", "Принцип работы", "Воздух входит у цоколя, проходит в зазоре за панелями и выходит у парапета, унося влагу из утеплителя.")
+      + f'<div class="fig">{principle_section(936, 880)}</div>'
+      + grid([card("", "Вентиляция", "Непрерывный зазор от цоколя до парапета. Входы и выходы не перекрывать.", mini("mem"), h=100, g=True),
+              card("", "Отвод влаги", "Пар выходит через мембрану, конденсат уносится потоком воздуха.", mini("ins"), h=100, g=True),
+              card("", "Температурное движение", "Панель расширяется: фиксированная + скользящие точки, открытые швы.", mini("adjust"), h=100, g=True)], 3),
+      "ВЕНТИЛИРУЕМЫЙ ФАСАД")
+
+# =====================================================================  04 SYSTEMS OVERVIEW
+def sys_card(n, name, sys, comps, app, sec):
+    A, g, _ = exploded(sys)
+    return (f'<div class="card" style="padding:20px"><div style="display:flex;gap:14px;align-items:baseline">'
+            f'<span style="font-size:32px;color:{OR};font-weight:300">{n}</span><h4 style="font-size:21px;margin:0">{name}</h4></div>'
+            f'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px"><div style="height:330px">{svg(936, 900, g)}</div>'
+            f'<div style="padding-top:6px">{sec}</div></div>'
+            f'<div class="meta" style="color:{GR};font-weight:700;margin-top:6px">КОМПОНЕНТЫ</div><p>{comps}</p>'
+            f'<div class="meta" style="color:{GR};font-weight:700">ПРИМЕНЕНИЕ</div><p>{app}</p></div>')
+
+
+def tiny_node(kind, fix):
+    return f'<div style="border:1px solid {LG}">{node(kind, 900, 720, fix, " ")}</div>'
+
+
+b.add(title("03", "Фасадные системы", "Четыре способа крепления HPL. Подсистема — общая, различается узел «панель — профиль».")
+      + grid([sys_card("01", "Заклёпочная", "rivet", "HPL, заклёпки, L/T-профили, кронштейны, анкеры", "Большинство фасадов; ремонтопригодно", tiny_node("vjoint", "rivet")),
+              sys_card("02", "Клеевая", "glue", "HPL, клей, лента, праймер, активатор, L/T-профили", "Чистый фасад без видимого крепежа", tiny_node("vjoint", "glue")),
+              sys_card("03", "Скрытая", "hidden", "HPL с тыльной обработкой, клипсы, направляющие", "Премиальные фасады, сложная архитектура", f'<div style="border:1px solid {LG}">{hidden_principle(936, 620)}</div>'),
+              sys_card("04", "Механическая (винты)", "screw", "HPL, фасадные винты, шайбы, профили", "Видимый крепёж; ремонтопригодно", f'<div style="border:1px solid {LG}">{screw_detail(936, 520)}</div>')], 2),
+      "ОБЗОР СИСТЕМ")
+sel = [("Крепёж на фасаде", "Виден, в цвет панели", "Не виден", "Не виден", "Виден, в цвет панели"),
+       ("Замена панели", "Просто", "Сложно", "Средне", "Просто"),
+       ("Скорость монтажа", "Высокая", "Ниже: выдержка и отверждение", "Средняя", "Высокая"),
+       ("Обработка панели", "Отверстия", "Очистка, праймер, активатор", "Тыльное фрезерование (ЧПУ)", "Отверстия"),
+       ("Условия монтажа", "По инструкции системы", "Строго: температура и влажность", "По инструкции системы", "По инструкции системы"),
+       ("Лучше всего для", "Большинства объектов", "Чистой плоскости без крепежа", "Премиальных фасадов", "Ремонтопригодных фасадов")]
+sh = "".join(f'<th style="text-align:left;padding:14px 10px;font-size:13px;letter-spacing:.1em;color:{"#fff" if i else MG};background:{GR if i else "transparent"}">{h}</th>' for i, h in enumerate(["КРИТЕРИЙ", "ЗАКЛЁПОЧНАЯ", "КЛЕЕВАЯ", "СКРЫТАЯ", "МЕХАНИЧЕСКАЯ"]))
+sb = "".join("<tr>" + "".join(f'<td style="padding:14px 10px;border-bottom:1px solid {LG};font-size:15px;{"font-weight:700" if i == 0 else ""}">{c}</td>' for i, c in enumerate(r)) + "</tr>" for r in sel)
+b.add(title("03", "Как выбрать<br>систему", "Короткое сравнение для архитектора и заказчика. Окончательный выбор — по проекту, нагрузкам и бюджету.", "ВЫБОР СИСТЕМЫ")
+      + f'<table style="width:100%;border-collapse:collapse;margin-top:40px"><tr>{sh}</tr>{sb}</table>'
+      + f'<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:40px">'
+      + f'<div style="height:520px;overflow:hidden">{photo3d("b_day0")}</div><div style="height:520px;overflow:hidden">{photo3d("b_day1")}</div></div>'
+      + f'<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:10px"><p style="font-size:14px;color:{DG}">Заклёпочная система · GRAPHITE + VIRGINIA WALNUT</p><p style="font-size:14px;color:{DG}">Скрытая / клеевая · ASH STONE VEIN + DUNE OAK</p></div>'
+      + '<div class="note">Не уверены, какую систему выбрать? Пришлите фасады и площадь — инженер UZHPL подберёт решение (контакты — в конце каталога).</div>', "ВЫБОР СИСТЕМЫ")
+
+
+node_pages = [
+    ("outer_corner", "Внешний угол", ["Угловой профиль за швом", "Шов — ПО ПРОЕКТУ", "Крепление обеих панелей у угла — по схеме"]),
+    ("inner_corner", "Внутренний угол", ["Внутренний угловой профиль", "Панели не упираются друг в друга", "Зазор для движения — ПО ПРОЕКТУ"]),
+    ("window_reveal", "Оконный откос", ["HPL-откос до оконного блока", "Утеплитель откоса", "Примыкание к окну — герметизация по проекту"]),
+    ("window_head", "Верхний оконный узел", ["Нижняя панель над окном", "Вход воздуха в зазор", "Зазор у оконного блока — ПО ПРОЕКТУ"]),
+    ("window_sill", "Нижний оконный узел", ["Отлив с уклоном и капельником", "Выход воздуха из зазора", "Вынос отлива — ПО ПРОЕКТУ"]),
+    ("base", "Цоколь", ["Перфорированный цокольный профиль", "Защита от грызунов, вход воздуха", "Отметка над отмосткой — ПО ПРОЕКТУ"]),
+    ("parapet", "Парапет", ["Парапетная крышка с уклоном", "Выход воздуха под крышкой", "Вынос крышки — ПО ПРОЕКТУ"]),
+    ("top", "Верхнее примыкание", ["Примыкание к перекрытию / козырьку", "Выход воздуха", "Отлив — ПО ПРОЕКТУ"]),
+    ("hjoint", "Горизонтальный стык", ["Открытый шов", "Профиль непрерывный", "Ширина шва — ПО ПРОЕКТУ"]),
+    ("vjoint", "Вертикальный стык", ["Шов над T-профилем", "Крепление обеих панелей", "Ширина шва — ПО ПРОЕКТУ"]),
+]
+
+
+# =====================================================================  SYSTEM CHAPTER GENERATOR
+def chapter(no, name, sysk, assembly_keys, assembly_legend, comps, principle_html, node_list, fix,
+            prep, montage, tools_list, recs, result, sub):
+    divider(no, name, sub, ["Конструкция", "Компоненты", "Принцип работы", "Основные узлы",
+                            "Подготовка HPL", "Монтаж", "Инструменты", "Рекомендации"])
+    tag = name.upper()
+    b.add(title(no + ".1", name, "Конструкция в разнесённом виде. Нумерация — от стены к панели.", "КОНСТРУКЦИЯ")
+          + f'<div class="fig">{numbered_expl(sysk, assembly_keys, 900)}</div>' + legend(assembly_legend), tag)
+    b.add(title(no + ".2", "Компоненты<br>системы", "Каждый элемент — одна функция. Типоразмеры подбираются по расчёту.", "КОМПОНЕНТЫ")
+          + '<div style="margin-top:36px"></div>' + grid([card(i + 1, n, d, comp(k), m, h=150) for i, (n, d, k, m) in enumerate(comps)], 3, 14), tag)
+    b.add(title(no + ".3", "Принцип работы", "", "ПРИНЦИП") + principle_html, tag)
+    if fix == "rivet":
+        names = {k: n for k, n, _ in node_pages}
+        idx = "".join(f'<a href="#sec-09.{i + 1}" style="color:inherit;text-decoration:none"><div class="card g" style="padding:12px">'
+                      f'<div style="height:150px">{photo3d_c(N3D[k])}</div><div style="display:flex;gap:10px;align-items:center;margin-top:6px">'
+                      f'<span class="badge">{i + 1}</span><h4 style="margin:0;font-size:16px">{names[k]}</h4></div>'
+                      f'<p style="margin-top:4px">Разрез и детали — стр. {{{{pg:09.{i + 1}}}}} →</p></div></a>' for i, k in enumerate(node_list))
+        b.add(title(no + ".4", "Основные узлы", "10 типовых узлов заклёпочной системы. Нажмите на узел — откроется страница с разрезом.", "УЗЛЫ")
+              + f'<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-top:30px">{idx}</div>', tag)
+    else:
+        b.add(title(no + ".4", "Основные узлы", "", "УЗЛЫ") + '<div style="margin-top:30px"></div>'
+              + grid([f'<div>{node(k, 900, 720, fix)}</div>' for k in node_list[:6]], 2, 18)
+              + f'<div class="note">Схемы узлов — принципиальные. Размеры зазоров, шаг крепежа и отступы — {P} / ПО РАСЧЁТУ.</div>', tag)
+    b.add(title(no + ".5", "Подготовка HPL", "", "ПОДГОТОВКА") + prep, tag)
+    b.add(title(no + ".6", "Монтаж", "Хронологическая последовательность работ.", "МОНТАЖ")
+          + '<div class="steps" style="margin-top:20px">' + "".join(step(f"{i + 1:02d}", n, d, vis(k)) for i, (n, d, k) in enumerate(montage)) + '</div>', tag)
+    b.add(title(no + ".7", "Инструменты", "", "ИНСТРУМЕНТЫ") + '<div style="margin-top:36px"></div>'
+          + grid([card(i + 1, n, d, tool(k), h=150, g=True) for i, (n, d, k) in enumerate(tools_list)], 3, 14), tag)
+    b.add(title(no + ".8", "Рекомендации<br>UZHPL", "", "РЕКОМЕНДАЦИИ") + '<div style="margin-top:30px">'
+          + "".join(rec(f"{i + 1:02d}", n, d, p) for i, (n, d, p) in enumerate(recs)) + '</div>', tag)
+    if result:
+        full_photo(*result)
+
+
+# ---------------------------------------------------------------- RIVET
+rivet_comps = [("HPL-панель", "Облицовка. Толщина и формат — по проекту.", "panel", "6–12 мм в линейке UZHPL"),
+               ("Ветрозащитная мембрана", "Защищает утеплитель от ветра и влаги, пропускает пар.", "membrane", "паропроницаемая"),
+               ("L-профиль", "Вертикальный несущий профиль у края панели.", "lprofile", "оцинк. сталь / алюминий"),
+               ("T-профиль", "Профиль рядового стыка двух панелей.", "tprofile", "оцинк. сталь / алюминий"),
+               ("Кронштейн несущий", "Фиксированная опора: воспринимает вес.", "bracket_fixed", "шаг — по расчёту"),
+               ("Кронштейн опорный", "Скользящая опора: ветровая нагрузка, движение.", "bracket_sliding", "шаг — по расчёту"),
+               ("Анкер", "Крепит кронштейн к основанию.", "anchor", "тип — по основанию"),
+               ("Заклёпка для HPL", "Крепит панель к профилю. Головка в цвет панели.", "rivet", "исх. спец.: 5×15, гол. 15 мм*"),
+               ("Терморазрывная прокладка", "Снижает мостик холода под кронштейном.", "gasket", "паронит / EPDM")]
+rivet_principle = (f'<div class="fig">{fixed_sliding(936, 560)}</div>'
+                   + grid([f'<div>{rivet_detail(440, 380, True)}</div>', f'<div>{rivet_detail(440, 380, False)}</div>'], 2)
+                   + '<div style="margin-top:20px"></div>'
+                   + grid([card("", "Фиксированная точка", "Задаёт положение панели. Обычно одна на панель — по схеме системы.", "", h=0),
+                           card("", "Скользящая точка", "Увеличенное отверстие: панель свободно движется при нагреве.", "", h=0),
+                           card("", "Вентзазор", f"Непрерывный, ширина — ПО РАСЧЁТУ. Не перекрывать.", "", h=0)], 3)
+                   + '<div class="note">Нельзя жёстко фиксировать все точки или делать все отверстия одинаковыми без проверки инструкции производителя системы.</div>')
+rivet_nodes = ["outer_corner", "inner_corner", "window_reveal", "window_head", "window_sill", "base",
+               "parapet", "top", "hjoint", "vjoint"]
+prep_rivet = (f'<div class="fig">{panel_processing(936, 600)}</div>'
+              + '<div class="steps">' + "".join(step(f"{i + 1:02d}", n, d, vis(k)) for i, (n, d, k) in enumerate([
+                  ("Обмер", "Фактические размеры по месту — УТОЧНЯЕТСЯ НА ОБЪЕКТЕ.", "t:tape"),
+                  ("Разметка и раскрой", "По карте раскроя. Твердосплавный диск, поддержка листа.", "t:saw"),
+                  ("Сверление", "Кондуктор / направляющая; фикс. и скользящие отверстия по схеме.", "rivet"),
+                  ("Кромки и очистка", "Снять заусенцы, очистить поверхность, маркировать панель.", "clean")])) + '</div>')
+rivet_montage = [("Разметка", "Оси, отметки, точки кронштейнов по проекту.", "mark"),
+                 ("Монтаж кронштейнов", "Анкеры по основанию, терморазрывные прокладки.", "bracket"),
+                 ("Установка утеплителя", "Плотно, без щелей; крепление дюбелями.", "ins"),
+                 ("Монтаж мембраны", "Нахлёст и проклейка — по инструкции.", "mem"),
+                 ("Монтаж L/T-профилей", "Выставить в плоскость, зазоры на стыках профилей.", "profiles"),
+                 ("Подготовка HPL", "Раскрой, сверление, маркировка по монтажной карте.", "hplprep"),
+                 ("Монтаж панели", "Установка с соблюдением швов и плоскости.", "panel"),
+                 ("Заклёпочный крепёж", "Специальный наконечник; сначала фикс. точка.", "rivet"),
+                 ("Контроль геометрии", "Плоскость, швы, вертикаль/горизонталь.", "geom"),
+                 ("Финальный контроль", "Головки, поверхность, движение панели, фото.", "final")]
+rivet_tools = [("Лазерный уровень", "Разметка осей и плоскости", "laser"), ("Дрель / шуруповёрт", "Регулируемые обороты", "drill"),
+               ("Заклёпочник", "Под фасадные заклёпки", "riveter"), ("Сверло для HPL", "По технической карте", "drillbit"),
+               ("Перфоратор", "Отверстия под анкеры", "hammerdrill"), ("Циркулярная пила", "Твердосплавный диск", "saw"),
+               ("ЧПУ / фрезер", "Серийная обработка", "cnc"), ("Рулетка", "Обмер на объекте", "tape"),
+               ("Уровень", "Контроль плоскости", "level"), ("Струбцины", "Фиксация при обработке", "clamp"),
+               ("Вакуумные захваты", "Перенос крупных панелей", "suction"), ("Защитные очки", "Сверление и резка", "glasses")]
+rivet_recs = [("Расчёт проекта", "Подсистема, шаг кронштейнов и профилей — только по расчёту.", "ПО РАСЧЁТУ"),
+              ("Ветровые нагрузки", "Число точек крепления определяется по зоне здания.", "ПО РАСЧЁТУ"),
+              ("Фикс. / скользящие точки", "Одна фиксированная точка, остальные — скользящие, по схеме.", ""),
+              ("Вентилируемый зазор", "Непрерывный от цоколя до парапета.", "ПО РАСЧЁТУ"),
+              ("Отступы от кромок", "Не менять без разрешения производителя.", "ПО ИНСТРУКЦИИ"),
+              ("Обработка панелей", "Твердосплавный инструмент, первая деталь — контрольная.", ""),
+              ("Подбор крепежа", "Диаметр, захват, головка, материал — проверить совместимость.", ""),
+              ("Наконечник заклёпочника", "Специальный наконечник под конкретную заклёпку (напр. MBE).", ""),
+              ("Температура монтажа", "Учитывать при выставлении швов.", "ПО ИНСТРУКЦИИ"),
+              ("Очистка и защита", "Снять плёнку после монтажа, мягкие средства.", "")]
+chapter("04", "Заклёпочная<br>система", "rivet", ["wall", "bracket", "ins", "mem", "lprof", "tprof", "panel", "rivet"],
+        [("Несущая стена", ""), ("Кронштейн", "несущий / опорный"), ("Утеплитель", "мин. вата"), ("Мембрана", "ветрозащитная"),
+         ("L-профиль", ""), ("T-профиль", ""), ("HPL-панель", ""), ("Заклёпка", "в цвет панели")],
+        rivet_comps, rivet_principle, rivet_nodes, "rivet", prep_rivet, rivet_montage, rivet_tools, rivet_recs,
+        ("Заклёпочный<br>фасад", "Видимый ритм крепежа как часть архитектуры. Ремонтопригодно и проверено временем.", False, 0),
+        "Классическое и надёжное решение: панель крепится к подсистеме фасадными заклёпками. Видимый крепёж, ремонтопригодность.")
+
+# ---------------------------------------------------------------- GLUE
+glue_comps = [("Активатор", "Подготовка поверхности перед праймером.", "activator", "по системе"),
+              ("Праймер", "Улучшает адгезию клея.", "primer", "по системе"),
+              ("Двусторонняя лента", "Временная фиксация до отверждения.", "tape", "временная"),
+              ("Клеевой состав", "Постоянное несущее соединение.", "cartridge", "постоянное"),
+              ("HPL-панель", "Совместимость с системой — обязательна.", "panel", P),
+              ("L/T-профиль", "Совместимый с клеевой системой.", "lprofile", "алюминий / по системе"),
+              ("Кронштейн", "Несущий / опорный.", "bracket_fixed", "шаг — по расчёту"),
+              ("Анкер", "По основанию и расчёту.", "anchor", "по основанию"),
+              ("Утеплитель + мембрана", "Минвата НГ, ветрозащита.", "insulation", "")]
+glue_principle = (f'<div class="fig">{glue_section(936, 560)}</div>'
+                  + grid([card("", "Временная фиксация", "Лента держит панель в проектном положении, пока клей набирает прочность.", mini("tape"), h=110, g=True),
+                          card("", "Постоянное соединение", "Клеевой валик — несущий шов. Геометрия — по системе.", mini("glue"), h=110, g=True),
+                          card("", "Условия", "Температура, влажность, чистота — в журнал условий.", mini("cure"), h=110, g=True)], 3)
+                  + f'<div class="fig" style="height:560px;background:{XL};padding:20px">{photo3d_c("n_hjoint")}</div>')
+glue_nodes = ["outer_corner", "inner_corner", "window_reveal", "base", "parapet", "hjoint", "vjoint"]
+prep_glue = ('<div class="steps" style="margin-top:20px">' + "".join(step(f"{i + 1:02d}", n, d, vis(k)) for i, (n, d, k) in enumerate([
+    ("Проверка совместимости", "Клей, праймер, панель и профиль — одной системы.", "final"),
+    ("Проверка условий", "Температура и влажность — ПО ИНСТРУКЦИИ ПРОИЗВОДИТЕЛЯ.", "cure"),
+    ("Очистка", "Безворсовые салфетки, очиститель по системе.", "clean"),
+    ("Шлифование (если требуется)", "Абразив — только разрешённый системой.", "hplprep"),
+    ("Активатор", "Тонкий слой, выдержка по инструкции.", "activator"),
+    ("Праймер", "На профиль / панель — по системе.", "primer"),
+    ("Пробная адгезия", "Тест на отрыв на объекте.", "press")])) + '</div>')
+glue_montage = [("Подготовка основания", "Подсистема выставлена, плоскость проверена.", "mark"),
+                ("Очистка профилей", "Обезжиривание по системе.", "clean"),
+                ("Активатор", "Нанесение и выдержка.", "activator"),
+                ("Праймер", "Нанесение и выдержка.", "primer"),
+                ("Двусторонняя лента", "Вдоль профиля, без натяжения.", "tape"),
+                ("Клеевой валик", "Треугольный шов, сплошной.", "glue"),
+                ("Установка панели", "В пределах открытого времени клея.", "panel"),
+                ("Фиксация", "Прижать; при необходимости — временные упоры.", "press"),
+                ("Отверждение", "Не нагружать до набора прочности.", "cure"),
+                ("Контроль качества", "Плоскость, швы, журнал условий.", "final")]
+glue_tools = [("Пистолет для клея", "Под картридж / колбасу", "gun"), ("Кисть / аппликатор", "Праймер, активатор", "brush"),
+              ("Строительный нож", "Лента, плёнка", "knife"), ("Вакуумные захваты", "Точная установка панели", "suction"),
+              ("Лазерный уровень", "Разметка", "laser"), ("Уровень", "Плоскость", "level"),
+              ("Перчатки", "Работа с химией", "gloves"), ("Респиратор", "Работа с праймером", "mask"), ("Защитные очки", "Нанесение составов", "glasses")]
+glue_recs = [("Только система", "Клей, праймер, активатор, лента — одного производителя.", ""),
+             ("Совместимость", "Подтвердить совместимость с панелью и профилем.", ""),
+             ("Условия нанесения", "Температура и влажность — по инструкции.", "ПО ИНСТРУКЦИИ"),
+             ("Чистота", "Поверхности сухие, чистые, обезжиренные.", ""),
+             ("Время выдержки", "Соблюдать время испарения праймера/активатора.", "ПО ИНСТРУКЦИИ"),
+             ("Геометрия шва", "Треугольный валик, размеры — по системе.", "ПО СИСТЕМЕ"),
+             ("Отверждение", "Не нагружать соединение до набора прочности.", ""),
+             ("Пробная адгезия", "Тест на отрыв на объекте перед началом работ.", ""),
+             ("Защита", "От осадков и прямого солнца во время монтажа.", ""),
+             ("Журнал", "Фиксировать условия нанесения и партии материалов.", "")]
+chapter("05", "Клеевая<br>система", "glue", ["wall", "bracket", "ins", "mem", "lprof", "tape", "glue", "panel"],
+        [("Несущая стена", ""), ("Кронштейн", ""), ("Утеплитель", ""), ("Мембрана", ""), ("L/T-профиль", ""),
+         ("Двусторонняя лента", "временная фиксация"), ("Клеевой валик", "постоянное соединение"), ("HPL-панель", "")],
+        glue_comps, glue_principle, glue_nodes, "glue", prep_glue, glue_montage, glue_tools, glue_recs,
+        ("Клеевой<br>фасад", "Чистая плоскость без видимого крепежа — для современной архитектуры.", True, 1),
+        "Эстетичное решение без видимого крепежа. Панель приклеивается к совместимой подсистеме фасадным клеевым комплектом.")
+
+# =====================================================================  07 HIDDEN
+divider("06", "Скрытая<br>система", "Панель с тыльной обработкой навешивается на несущие направляющие через клипсы. Крепёж на фасаде не виден.",
+        ["Конструкция", "Принцип навески", "Узлы", "Монтаж и инструменты"])
+b.add(title("06.1", "Скрытая система", "Конструкция в разнесённом виде.", "КОНСТРУКЦИЯ")
+      + f'<div class="fig">{numbered_expl("hidden", ["wall", "bracket", "ins", "mem", "lprof", "rail", "clip", "panel"], 900)}</div>'
+      + legend([("Несущая стена", ""), ("Кронштейн", ""), ("Утеплитель", ""), ("Мембрана", ""), ("Вертикальный профиль", ""),
+                ("Несущая направляющая", "горизонтальная"), ("Клипса / кляймер", "на тыльной стороне панели"), ("HPL-панель", "с тыльной обработкой")]), "СКРЫТАЯ СИСТЕМА")
+b.add(title("06.2", "Принцип<br>скрытого крепления", "Клипса закрепляется в тыльной обработке панели и навешивается на направляющую сверху вниз.", "ПРИНЦИП")
+      + f'<div class="fig">{hidden_principle(936, 620)}</div>'
+      + '<div style="margin-top:20px"></div>'
+      + grid([card(1, "HPL с пазом / анкером", "Обработка — только по инструкции системы.", comp("panel_groove"), "ЧПУ", h=140),
+              card(2, "Клипса", "Передаёт нагрузку на направляющую.", comp("clip"), "по системе", h=140),
+              card(3, "Вертикальный профиль", "Несёт направляющие.", comp("vprofile"), "по расчёту", h=140)], 3)
+      + '<div class="note">Остаточная толщина материала, глубина паза и положение зацепов — ПО ИНСТРУКЦИИ СИСТЕМЫ. Не фрезеровать кромку по собственному усмотрению.</div>'
+      + grid([card("", "Регулировка", "Регулировочные винты клипс выставляют панель в плоскость.", mini("adjust"), h=100, g=True),
+              card("", "Температурное движение", "Одна точка фиксируется от смещения, остальные — свободно.", mini("press"), h=100, g=True)], 2),
+      "СКРЫТАЯ СИСТЕМА")
+b.add(title("06.3", "Узлы", "", "УЗЛЫ") + '<div style="margin-top:30px"></div>'
+      + grid([f'<div>{node(k, 900, 720, "hidden")}</div>' for k in ["outer_corner", "inner_corner", "window_reveal", "base", "parapet", "vjoint"]], 2, 18)
+      + '<div class="note">Узлы скрытой системы показаны по общей подсистеме; точная геометрия клипс и направляющих — по документации производителя системы.</div>', "СКРЫТАЯ СИСТЕМА")
+b.add(title("06.4", "Монтаж", "", "МОНТАЖ") + '<div class="steps" style="margin-top:20px">'
+      + "".join(step(f"{i + 1:02d}", n, d, vis(k)) for i, (n, d, k) in enumerate([
+          ("Разметка и кронштейны", "Оси и кронштейны по проекту.", "bracket"),
+          ("Профили и утеплитель", "Утеплитель, мембрана, вертикальные профили.", "profiles"),
+          ("Направляющие", "Горизонтальные направляющие по отметкам.", "geom"),
+          ("Обработка панелей (ЧПУ)", "Паз / отверстия под анкер по системе.", "hplprep"),
+          ("Установка клипс", "На тыльную сторону панели.", "clip"),
+          ("Навеска панели", "Сверху вниз на направляющую.", "panel"),
+          ("Регулировка и фиксация", "Плоскость, швы, точка фиксации.", "adjust"),
+          ("Контроль", "Геометрия и фиксация каждой панели.", "final")])) + '</div>'
+      + '<div style="margin-top:22px"></div>' + grid([card("", n, "", tool(k), h=110, g=True) for n, k in
+                                                      [("Дрель", "drill"), ("ЧПУ", "cnc"), ("Уровень", "level"), ("Рулетка", "tape"), ("Ключи", "wrench"), ("Захваты", "suction")]], 6, 10),
+      "СКРЫТАЯ СИСТЕМА")
+
+# =====================================================================  08 SCREW
+divider("07", "Механическая<br>система", "Панель крепится к подсистеме фасадными винтами с окрашенной головкой. Видимый механический крепёж.",
+        ["Конструкция", "Компоненты и крепёжный узел", "Узлы и монтаж"])
+b.add(title("07.1", "Механическая<br>система (винты)", "", "КОНСТРУКЦИЯ")
+      + f'<div class="fig">{numbered_expl("screw", ["wall", "bracket", "ins", "mem", "lprof", "tprof", "panel", "rivet"], 900)}</div>'
+      + legend([("Несущая стена", ""), ("Кронштейн", ""), ("Утеплитель", ""), ("Мембрана", ""), ("L-профиль", ""),
+                ("T-профиль", ""), ("HPL-панель", ""), ("Фасадный винт + шайба", "головка в цвет панели")]), "МЕХАНИЧЕСКАЯ СИСТЕМА")
+b.add(title("07.2", "Компоненты<br>и крепёжный узел", "", "КОМПОНЕНТЫ") + f'<div class="fig">{screw_detail(936, 520)}</div>'
+      + '<div style="margin-top:20px"></div>'
+      + grid([card(1, "Фасадный винт", "Окрашенная головка, материал — по системе.", comp("screw"), "по расчёту", h=140),
+              card(2, "Шайба / уплотнение", "Распределяет нагрузку на панель.", comp("washer"), "по системе", h=140),
+              card(3, "HPL-панель", "Отверстия: фикс. / скользящие.", comp("panel"), P, h=140),
+              card(4, "Профиль", "Под винтовое крепление.", comp("tprofile"), "по системе", h=140),
+              card(5, "Кронштейн", "Несущий / опорный.", comp("bracket_fixed"), "по расчёту", h=140),
+              card(6, "Анкер", "По основанию.", comp("anchor"), "по основанию", h=140)], 3)
+      + '<div class="note">Не заменять фасадный крепёж обычными саморезами. При сочетании нержавеющего крепежа и оцинкованной подсистемы проверять риск контактной коррозии.</div>',
+      "МЕХАНИЧЕСКАЯ СИСТЕМА")
+b.add(title("07.3", "Узлы и монтаж", "", "УЗЛЫ") + '<div style="margin-top:30px"></div>'
+      + grid([f'<div>{node(k, 900, 720, "screw")}</div>' for k in ["outer_corner", "vjoint", "hjoint", "base"]], 2, 18)
+      + '<div class="steps" style="margin-top:14px">' + "".join(step(f"{i + 1:02d}", n, d, vis(k)) for i, (n, d, k) in enumerate([
+          ("Разметка и подсистема", "Проверить плоскость подсистемы.", "profiles"),
+          ("Отверстия по схеме", "Фикс. и скользящие — по инструкции.", "hplprep"),
+          ("Установка и крепление", "Без перетяжки, швы — по проекту.", "screw")])) + '</div>', "МЕХАНИЧЕСКАЯ СИСТЕМА")
+
+# =====================================================================  09 PROCESSING
+ops = [("Обмер", "Контроль размеров листа и по месту.", "tape"), ("Раскрой", "Пила / ЧПУ, твердосплавный диск.", "saw"),
+       ("Сверление", "Свёрла для HPL по технической карте.", "drillbit"), ("Фрезерование", "ЧПУ-фрезер, пазы по системе.", "cnc"),
+       ("Пазование", "Под скрытый крепёж — по системе.", "c:panel_groove"), ("Кромки", "Удаление заусенцев.", "deburr"),
+       ("Пылеудаление", "Чистая зона обработки.", "vacuum"), ("Контроль", "Первая деталь — контрольная.", "calipers")]
+b.add(title("08", "Обработка HPL", "Технический цех UZHPL: раскрой, сверление и фрезерование по монтажным картам.")
+      + f'<div class="fig" style="height:430px;overflow:hidden">{panel_processing(936, 600)}</div>'
+      + '<div style="margin-top:14px"></div>' + grid([card(i + 1, n, d, tool(k), h=90, g=True) for i, (n, d, k) in enumerate(ops)], 4, 12)
+      + '<div class="rule"></div><h2 class="sec">Индивидуальные решения</h2>'
+      + grid([card("01", "Фигурная обработка", "Фрезеровка, перфорация и раскрой по чертежам заказчика.", comp("panel_groove"), "срок — 3–4 недели", h=120, g=True),
+              card("02", "Эксклюзивная коллекция", "Уникальный декор под проект: цвет, текстура и фактура по референсу.", f'<div style="height:100%;width:100%;background:url(img/decor/F-30.jpg) center/cover"></div>', "мин. 2000 м² · 10–11 недель", h=120, g=True),
+              card("03", "Ваш дизайн", "Печать фирменного паттерна, графики или фото на панелях.", f'<div style="height:100%;width:100%;background:url(img/decor/F-72.jpg) center/cover"></div>', "мин. 7000 м² · 6–11 недель", h=120, g=True)], 3)
+      + '<div class="note">Обороты, подача и направление реза — по инструкции производителя панели и инструмента. Сроки и тиражи индивидуальных решений — по каталогу UZHPL, уточняйте у менеджера.</div>',
+      "ОБРАБОТКА HPL")
+
+# =====================================================================  10 NODES (one per page)
+divider("09", "Фасадные<br>узлы", "Отдельная страница — на каждый узел. Принципиальные разрезы для заклёпочной системы.",
+        [n for _, n, _ in node_pages])
+for i, (k, n, pts) in enumerate(node_pages):
+    b.add(title(f"09.{i + 1}", n, "", "ФАСАДНЫЙ УЗЕЛ") + f'<div class="fig">{node(k, 900, 720, "rivet")}</div>'
+          + f'<div style="display:grid;grid-template-columns:1.1fr 1fr;gap:36px;margin-top:30px"><div style="background:{XL};padding:18px;display:flex;flex-direction:column">'
+          + f'<div class="chip" style="color:{GR}">3D-ВИЗУАЛИЗАЦИЯ УЗЛА</div><div style="flex:1;min-height:360px;margin-top:10px">{photo3d_c(N3D[k])}</div></div><div><h2 class="sec">Ключевые элементы</h2>'
+          + "".join(f'<div class="rec" style="grid-template-columns:40px 1fr;padding:12px 0"><span class="badge">{j + 1}</span><h4 style="font-size:18px;padding-top:3px">{t}</h4></div>' for j, t in enumerate(pts))
+          + '<div style="height:26px"></div><h2 class="sec">Данные проекта</h2>'
+          + "".join(f'<div class="rec" style="grid-template-columns:1fr auto;padding:12px 0"><h4 style="font-size:17px">{a}</h4><span class="pill">{c}</span></div>'
+                    for a, c in [("Шаг крепления", "ПО РАСЧЁТУ"), ("Ширина швов", P), ("Вентзазор", "ПО РАСЧЁТУ"), ("Фактические размеры", "НА ОБЪЕКТЕ")])
+          + '</div></div>', "ФАСАДНЫЕ УЗЛЫ")
+
+# =====================================================================  11 INTERIOR
+apps = []
+IAPPS = [("Стены", "walls", "VIRGINIA WALNUT"), ("Потолки", "ceiling", "DUNE OAK"), ("Мебель", "furniture", "GRAPHITE + ELEGANT OAK"),
+         ("Перегородки", "partitions", "SMOKE GRAY + WALNUT"), ("Санитарные зоны", "sanitary", "PEARL WHITE + GRAPHITE"),
+         ("Рецепции", "reception", "BLACK GALAXY + OAK"), ("Декоративные панели", "decorative", "DUNE OAK, рейка")]
+
+
+def room(kind):
+    s = rect(0, 0, 300, 200, "#efeeec", "none", 0)
+    s += poly2([(0, 0), (60, 30), (60, 160), (0, 200)], "#e2e0dc", "none", 0) + poly2([(300, 0), (240, 30), (240, 160), (300, 200)], "#e2e0dc", "none", 0)
+    s += poly2([(0, 200), (60, 160), (240, 160), (300, 200)], "#cfcbc4", "none", 0)
+    if kind in ("Стены", "Декоративные панели"):
+        for i in range(4):
+            s += rect(64 + i * 44, 32, 42, 126, "url(#pHpl)" if kind == "Стены" else "#8a4a2a", "none", 0)
+    if kind == "Потолки":
+        s += poly2([(0, 0), (300, 0), (240, 30), (60, 30)], "url(#pHpl)", "none", 0)
+    if kind == "Мебель":
+        s += rect(90, 90, 120, 70, "url(#pHpl)", "#000", .5) + rect(86, 84, 128, 8, "#3a3c40", "none", 0)
+    if kind == "Перегородки":
+        for i in range(3):
+            s += rect(80 + i * 50, 60, 40, 100, "url(#pHpl)", "#000", .5)
+    if kind == "Санитарные зоны":
+        for i in range(3):
+            s += rect(70 + i * 56, 50, 50, 110, "#3a3c40", "#000", .5) + f'<circle cx="{110 + i * 56}" cy="110" r="2" fill="{OR}"/>'
+    if kind == "Рецепции":
+        s += rect(70, 100, 160, 60, "url(#pHpl)", "#000", .5) + rect(66, 94, 168, 8, OR, "none", 0)
+    return svg(300, 200, s)
+
+
+b.add(title("10", "Интерьерные<br>системы", "HPL для стен, потолков, мебели и санитарных зон. Подбирается отдельно от наружного фасада.")
+      + '<div style="margin-top:34px"></div>' + grid([card(i + 1, a, d, f'<div style="height:100%;width:100%;background:url(img/i_{k}.jpg) center/cover"></div>', h=190)
+                                                     for i, (a, k, d) in enumerate(IAPPS)]
+                                                    + [card("", "Ваш проект", "Подберём декор и способ монтажа под задачу интерьера.", f'<div style="height:100%;width:100%;background:url(img/decor/F-35.jpg) center/cover"></div>', h=190, g=True)], 4, 12)
+      + '<div class="rule"></div><h2 class="sec">Способы монтажа</h2>'
+      + grid([card("A", "Клеевой", "На ровные подготовленные поверхности.", mini("glue"), h=110, g=True),
+              card("B", "Механический", "На каркас: винты / заклёпки.", mini("screw"), h=110, g=True),
+              card("C", "Скрытый", "Клипсы и подвесы — без видимого крепежа.", mini("clip"), h=110, g=True),
+              card("D", "Мебельная обработка", "Раскрой, кромки, фрезерование под фурнитуру.", tool("cnc"), h=110, g=True)], 4, 12),
+      "ИНТЕРЬЕРНЫЕ РЕШЕНИЯ")
+b.add(title("11", "Интерьерные узлы", "")
+      + '<div style="margin-top:30px"></div>'
+      + grid([interior_node(k) for k in ["in_corner", "out_corner", "joint", "ceiling", "floor", "door", "furniture", "wall_junction"]], 2, 18)
+      + '<div class="note">Компенсационные зазоры и шаг крепления в интерьере — ПО ПРОЕКТУ и инструкции производителя панели.</div>', "ИНТЕРЬЕРНЫЕ РЕШЕНИЯ")
+
+# =====================================================================  13 TOOLS
+groups = [("ИЗМЕРЕНИЕ", [("Лазерный уровень", "laser"), ("Рулетка", "tape"), ("Штангенциркуль", "calipers"), ("Угольник", "square")]),
+          ("РЕЗКА", [("Циркулярная пила", "saw"), ("Строительный нож", "knife")]),
+          ("СВЕРЛЕНИЕ", [("Дрель-шуруповёрт", "drill"), ("Сверло HPL", "drillbit"), ("Перфоратор", "hammerdrill")]),
+          ("ОБРАБОТКА", [("Станок с ЧПУ", "cnc"), ("Гратосниматель", "deburr"), ("Пылеудаление", "vacuum")]),
+          ("МОНТАЖ", [("Уровень", "level"), ("Струбцины", "clamp"), ("Вакуумные захваты", "suction"), ("Ключи", "wrench")]),
+          ("КЛЕЙ", [("Пистолет для клея", "gun"), ("Кисть-аппликатор", "brush"), ("Перчатки", "gloves")]),
+          ("ЗАКЛЁПКИ", [("Заклёпочник", "riveter")]),
+          ("БЕЗОПАСНОСТЬ", [("Очки", "glasses"), ("Защита слуха", "ear"), ("Респиратор", "mask"), ("Каска", "helmet")])]
+tool_rows = ""
+for gname, items in groups:
+    tool_rows += (f'<div style="display:grid;grid-template-columns:170px 1fr;gap:16px;border-bottom:1px solid {LG};padding:10px 0;align-items:center">'
+                  f'<div class="chip" style="color:{GR}">{gname}</div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">'
+                  + "".join(f'<div style="background:{XL};padding:6px 8px"><div style="height:92px">{tool(k, 240, 160)}</div>'
+                            f'<div style="font-size:13px;font-weight:600;margin-top:2px">{n}</div></div>' for n, k in items) + '</div></div>')
+b.add(title("12", "Инструменты<br>UZHPL", "Профессиональная библиотека инструмента по группам работ.") + f'<div style="margin-top:24px">{tool_rows}</div>'
+      + '<div class="note">Наконечник заклёпочника подбирается по таблице совместимости производителя заклёпки (напр. MBE) — не по названию.</div>', "ИНСТРУМЕНТЫ")
+
+# =====================================================================  14 QC
+qc = [("Геометрия", "Размеры и раскладка панелей по проекту", "РУЛЕТКА"), ("Плоскость", "Отклонения — в допусках проекта", "УРОВЕНЬ"),
+      ("Швы", "Равномерная ширина, прямолинейность", "ШАБЛОН"), ("Крепёж", "Тип, размер, положение, фикс./скольз.", "ВИЗУАЛЬНО"),
+      ("Поверхность панели", "Без сколов, царапин, следов", "ВИЗУАЛЬНО"), ("Вентиляция", "Зазор, входы и выходы открыты", "ВИЗУАЛЬНО"),
+      ("Клеевое соединение", "Условия, журнал, отверждение", "ЖУРНАЛ"), ("Кромки", "Без заусенцев и трещин", "ВИЗУАЛЬНО"),
+      ("Углы и откосы", "Узлы — по проекту", "ВИЗУАЛЬНО"), ("Очистка", "Плёнка снята, фасад чистый", "ФОТО")]
+b.add(title("13", "Контроль качества", "Визуальный чек-лист UZHPL перед сдачей объекта. Каждый пункт — фотофиксация и запись в журнал.")
+      + '<div class="checks" style="margin-top:36px">' + "".join(
+          f'<div class="ck"><div class="box"></div><div><h4>{a}</h4><p>{d}</p></div><div class="m">{m}</div></div>' for a, d, m in qc) + '</div>'
+      + f'<div class="fig">{svg(936, 300, mini("final", 936, 300)[0:0] + rect(0, 0, 936, 300, XL, "none", 0) + label(40, 70, "КОНТРОЛЬ НА КАЖДОМ ЭТАПЕ", 15, "start", 800, GR, 2) + "".join(rect(40 + i * 176, 110, 160, 150, "#fff", LG, 1) + label(56 + i * 176, 146, f"0{i + 1}", 26, "start", 300, OR) + label(56 + i * 176, 236, t, 13, "start", 700, GR) for i, t in enumerate(["ОСНОВАНИЕ", "ПОДСИСТЕМА", "ОБРАБОТКА", "МОНТАЖ", "СДАЧА"])))}</div>',
+      "КОНТРОЛЬ КАЧЕСТВА")
+
+# =====================================================================  15 RECS
+recs = [("Проект прежде монтажа", "Расчёт подсистемы и ветровых нагрузок до начала работ.", "ПО РАСЧЁТУ"),
+        ("Совместимость системы", "Панель, профили, крепёж и клей — подтверждённые системой.", ""),
+        ("Фиксированные и скользящие точки", "Схема по системе. Не фиксировать жёстко все точки.", ""),
+        ("Вентилируемый зазор", "Непрерывный, входы и выходы открыты.", "ПО РАСЧЁТУ"),
+        ("Отступы от кромок", "Не менять без разрешения производителя.", "ПО ИНСТРУКЦИИ"),
+        ("Обработка", "Твердосплавный инструмент, контрольная первая деталь.", ""),
+        ("Крепёж", "Не заменять фасадный крепёж обычным. Проверить контактную коррозию.", ""),
+        ("Температура", "Учитывать при монтаже швов и клеевых работах.", "ПО ИНСТРУКЦИИ"),
+        ("Документация", "Журнал работ, фото каждого этапа, партии материалов.", ""),
+        ("Защита и очистка", "Защищать лицевую поверхность; мягкие средства очистки.", "")]
+b.add(title("14", "Рекомендации<br>UZHPL", "Краткие инженерные правила для всех систем.") + '<div style="margin-top:30px">'
+      + "".join(rec(f"{i + 1:02d}", n, d, p) for i, (n, d, p) in enumerate(recs)) + '</div>', "РЕКОМЕНДАЦИИ")
+
+# =====================================================================  CREDITS (CC-BY attribution)
+import json as _json
+_cr = _json.load(open(os.path.join(_HERE, "render", "credits.json"))) if os.path.exists(os.path.join(_HERE, "render", "credits.json")) else {}
+_rows = "".join(f'<div class="rec" style="grid-template-columns:1fr 160px;padding:6px 0"><div><h4 style="font-size:14px">{v["title"]}</h4>'
+                f'<p style="font-size:11px;margin-top:2px">Автор: {v["author"]} · <a href="{v["url"]}" style="color:{DG}">{v["url"]}</a></p></div>'
+                f'<span class="pill" style="justify-self:end;align-self:center">{v["license"]}</span></div>' for v in _cr.values())
+b.add(title("", "Источники<br>3D-моделей", "Часть иллюстраций выполнена на основе 3D-моделей сторонних авторов. Модели используются как визуализация типовых инструментов и не являются рекламой производителей.")
+      + f'<div style="margin-top:30px">{_rows}</div>'
+      + '<div class="note">Модели Poly Haven (дрель, ключ, деревья, кустарники, рулон ленты) и HDRI-окружения — лицензия CC0. '
+        'Остальные компоненты, узлы и здания смоделированы для UZHPL.</div>', "ИСТОЧНИКИ")
+
+# =====================================================================  15 CTA
+qr = open(os.path.join(_HERE, "img", "qr.svg")).read()
+qr = qr[qr.index("<svg"):]
+cta_steps = [("Заявка", "Звонок или сообщение менеджеру"), ("Исходные данные", "Фасады / чертежи, площадь, адрес, сроки"),
+             ("Подбор решения", "Система крепления и декор; образцы панелей"), ("Расчёт и КП", "Подсистема, раскрой, комплектация, монтаж"),
+             ("Производство и поставка", "Раскрой и обработка HPL, комплектная поставка"), ("Монтаж и сдача", "Монтаж, контроль качества, фотоотчёт")]
+b.add(title("15", "Как начать<br>проект", "Шесть шагов от запроса до готового фасада. Один подрядчик — одна ответственность.")
+      + '<div style="margin-top:36px">' + "".join(
+          f'<div class="rec" style="grid-template-columns:70px 1fr;padding:16px 0"><div style="font-size:38px;font-weight:300;color:{OR}">0{i + 1}</div>'
+          f'<div><h4 style="font-size:22px">{a}</h4><p>{d}</p></div></div>' for i, (a, d) in enumerate(cta_steps)) + '</div>'
+      + f'<div style="display:grid;grid-template-columns:1.4fr 1fr;gap:30px;margin-top:40px;background:{GR};color:#fff;padding:40px">'
+      + f'<div><div class="chip" style="color:{OR}">СВЯЖИТЕСЬ С НАМИ</div><div style="font-size:40px;font-weight:800;margin-top:14px;line-height:1.15">+998 77 003 28 82<br>+998 78 122 31 51</div>'
+      + '<div style="font-size:24px;margin-top:18px;color:#c9ccd0">uzhpl.uz</div>'
+      + '<div style="font-size:15px;color:#9aa0a7;margin-top:22px;line-height:1.6">Что прислать для быстрого расчёта: фасады или фото объекта, площадь облицовки, желаемый декор, адрес и сроки.</div></div>'
+      + f'<div style="background:#fff;padding:20px;display:flex;flex-direction:column;align-items:center"><div style="width:240px">{qr}</div>'
+      + f'<div style="color:{GR};font-size:13px;font-weight:700;letter-spacing:.14em;margin-top:10px">UZHPL.UZ</div></div></div>', "КОНТАКТЫ")
+
+# =====================================================================  16 FULL CYCLE
+cyc = ["PROJECT", "ENGINEERING", "MATERIAL", "PROCESSING", "LOGISTICS", "INSTALLATION", "QUALITY CONTROL", "FINISHED FACADE"]
+ru = ["Проект", "Инженерия", "Материал", "Обработка", "Логистика", "Монтаж", "Контроль качества", "Готовый фасад"]
+cs = ""
+for i, (e, r) in enumerate(zip(cyc, ru)):
+    y = i * 112
+    last = i == len(cyc) - 1
+    cs += rect(0, y, 420, 84, OR if last else "#26282c", "none", 0)
+    cs += label(24, y + 36, f"0{i + 1}", 14, "start", 700, "#fff" if last else OR, 1)
+    cs += label(70, y + 38, e, 20, "start", 800, "#fff", 1) + label(70, y + 62, r, 14, "start", 400, "#fff" if last else "#9aa0a7")
+    if not last:
+        cs += arrow(210, y + 86, 210, y + 108, OR, 2)
+b.add(f'<div style="position:absolute;right:0;top:0;bottom:0;width:520px">{photo3d('b_cover', 'right')}</div>'
+      + f'<div style="position:absolute;right:0;top:0;bottom:0;width:520px;background:linear-gradient(90deg,#1D1F22 0%,rgba(29,31,34,0) 40%)"></div>'
+      + f'<div style="position:relative;z-index:2">{title("16", "Полный цикл<br>UZHPL")}'
+      + f'<div style="margin-top:50px;width:440px">{svg(420, 900, cs)}</div>'
+      + f'<div style="margin-top:40px">{logo(True, True, 46)}</div>'
+      + f'<div style="margin-top:26px;font-size:18px;color:#c9ccd0;line-height:1.7">uzhpl.uz<br>+998 77 003 28 82<br>+998 78 122 31 51</div></div>',
+      "ПОЛНЫЙ ЦИКЛ", dark=True)
+
+open("uzhpl-catalog.html", "w").write(b.html())
+print(len(b.pages), "pages")

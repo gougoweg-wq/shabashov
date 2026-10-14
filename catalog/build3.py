@@ -243,14 +243,22 @@ DESC = {"rivet": "Заклёпки с окрашенной головкой об
         "glue": "Монолитная плоскость без единого видимого элемента крепления. Для современной архитектуры и крупных однотонных плоскостей.",
         "hidden": "Панели навешиваются на кляммеры — фасад выглядит как цельная плоскость, панель можно снять.",
         "screw": "Аналог заклёпочной системы с винтовым крепежом; подходит для объектов, где важна простая замена панели."}
+# real project photos: drop up to 4 images into img/projects/<system>/ (sorted by name) — they replace the renders
+def gal_items(k):
+    real = sorted(f for f in os.listdir(os.path.join(HERE, "img", "projects", k))
+                  if f.lower().endswith((".jpg", ".jpeg", ".png", ".webp"))) if os.path.isdir(os.path.join(HERE, "img", "projects", k)) else []
+    items = [(f"img/projects/{k}/{f}", os.path.splitext(f)[0].split("_", 1)[-1].replace("-", " ")) for f in real[:4]]
+    return items + [(f"{V}{im}.png", c) for im, c in GAL[k][len(items):]]
+
+
 gal = ""
 for k, n, f, d in SYS:
     gal += (f'<div style="display:grid;grid-template-columns:230px 1fr;gap:24px;padding:22px 0;border-bottom:1px solid {LG}">'
             f'<div><div class="kick" style="font-size:11px">Система</div><div style="font-size:22px;font-weight:700;margin-top:6px">{n}</div>'
             f'<p class="tx" style="margin-top:10px">{DESC[k]}</p></div>'
             f'<div class="g4" style="gap:10px">' + "".join(
-                f'<div><div class="slot" style="height:250px"><img src="{V}{im}.png" style="width:100%;height:100%;object-fit:cover"></div>'
-                f'<div class="cap" style="margin-top:6px;line-height:1.35">{c}</div></div>' for im, c in GAL[k]) + '</div></div>')
+                f'<div><div class="slot" style="height:250px"><img src="{im}" style="width:100%;height:100%;object-fit:cover"></div>'
+                f'<div class="cap" style="margin-top:6px;line-height:1.35">{c}</div></div>' for im, c in gal_items(k)) + '</div></div>')
 b.add(title("Как выглядит<br>каждая система", "Выбор", "По четыре вида на каждую систему: общий вид, плоскость фасада, монтаж и узел крепления.")
       + f'<div style="margin-top:30px">{gal}</div>', "Выбор системы")
 

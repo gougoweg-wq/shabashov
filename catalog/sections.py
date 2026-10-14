@@ -62,6 +62,8 @@ def strip(y0, y1, mode="vert", fix="rivet", brackets=(), panels=(), ins=None, wa
             # tape + adhesive bead along profile flange in vertical; in plan as two small blocks
             if mode == "vert" and prof:
                 s += rect(pf, max(a, prof[0]) + 4, 3, min(b, prof[1]) - max(a, prof[0]) - 8, OR, "none", 0)
+        if fix in ("rivet", "screw") and mode == "vert" and prof:
+            s += rect(pf - 1, max(a, prof[0]), 2.5, min(b, prof[1]) - max(a, prof[0]), "#111", "none", 0)
         s += rect(pf + off, a, T, b - a, HPL, "#000", .8)
     for ry in rivets:
         if fix == "rivet":

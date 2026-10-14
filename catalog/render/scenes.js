@@ -504,7 +504,7 @@ async function main() {
   renderer.render(scene, camera);
   document.title = 'done';
 }
-(NAME.startsWith('int_') ? interiorMain() : NAME.startsWith('building') ? buildingMain() : NAME.startsWith('node_') ? nodeMain() : main()).catch(e => { document.title = 'error ' + e; console.error(e); });
+(NAME.startsWith('x_') ? xMain() : NAME.startsWith('int_') ? interiorMain() : NAME.startsWith('building') ? buildingMain() : NAME.startsWith('node_') ? nodeMain() : main()).catch(e => { document.title = 'error ' + e; console.error(e); });
 
 
 // ================================================================== ARCHITECTURE
@@ -532,10 +532,11 @@ async function buildingMain() {
   // facade generator: wall along local x, panels on +z face
   const texL = new THREE.TextureLoader();
   const ldec = (c) => new Promise(r => texL.load(`assets/decor/${c}.jpg`, t => { t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; r(t); }));
-  const DEC = variant === 0 ? [await ldec('F-11'), await ldec('F-35')] : [await ldec('F-30'), await ldec('F-38')];
+  const DEC = Q.get('d1') ? [await ldec(Q.get('d1')), await ldec(Q.get('d2') || Q.get('d1'))] : variant === 0 ? [await ldec('F-11'), await ldec('F-35')] : [await ldec('F-30'), await ldec('F-38')];
+  const BIG = Q.get('big') === '1', FIX = Q.get('fix') || '', HEAD = Q.get('head') || '#3a3b3e';
   function facade(len, hgt, color, winRule, x0, z0, rotY, map) {
     const F = new THREE.Group(); F.position.set(x0, 0, z0); F.rotation.y = rotY; B.add(F);
-    const pw = 1.5, ph = 1.0, gap = .012;
+    const pw = BIG ? 1.22 : 1.5, ph = BIG ? 3.05 : 1.0, gap = BIG ? .005 : .012;
     const nx = Math.round(len / pw), ny = Math.round(hgt / ph);
     const core = box(len, hgt, .4, new THREE.MeshStandardMaterial({ color: 0x222222 })); at(core, len / 2, hgt / 2, -.2); F.add(core);
     const pMat = new THREE.MeshPhysicalMaterial({ map: map || TEX.hpl('#ffffff', 21), roughness: .55, clearcoat: .25, clearcoatRoughness: .45 });
@@ -545,7 +546,7 @@ async function buildingMain() {
     const warm = new THREE.MeshStandardMaterial({ color: 0x000000, emissive: 0xffb469, emissiveIntensity: 1.6 });
     const frame = new THREE.MeshStandardMaterial({ color: 0x1c1d1f, roughness: .5, metalness: .6 });
     const m4 = new THREE.Matrix4(), c = new THREE.Color(map ? 0xffffff : color);
-    let k = 0;
+    let k = 0; const fpos = [];
     for (let i = 0; i < nx; i++) for (let j = 0; j < ny; j++) {
       const x = (i + .5) * pw, y = (j + .5) * ph;
       if (winRule(i, j, nx, ny)) {
@@ -556,15 +557,22 @@ async function buildingMain() {
       } else m4.makeTranslation(x, y, .06);
       inst.setMatrixAt(k, m4);
       const t = map ? .94 + r() * .08 : .9 + r() * .2; inst.setColorAt(k, c.clone().multiplyScalar(t)); k++;
+      if (FIX && !winRule(i, j, nx, ny)) for (const fx of [.03, .5, .97]) for (let fy = .14; fy < ph - .05; fy += .55) fpos.push([i * pw + fx * pw, j * ph + fy]);
     }
     F.add(inst);
+    if (fpos.length) {
+      const fg = FIX === 'screw' ? new THREE.CylinderGeometry(.0075, .0075, .006, 16) : new THREE.SphereGeometry(.008, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2);
+      const fmat = new THREE.MeshPhysicalMaterial({ color: HEAD, roughness: .35, clearcoat: .6 });
+      const fi = new THREE.InstancedMesh(fg, fmat, fpos.length); const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.PI / 2, 0, 0));
+      fpos.forEach(([x, y], n) => { m4.compose(new THREE.Vector3(x, y, .067), q, new THREE.Vector3(1, 1, 1)); fi.setMatrixAt(n, m4); }); F.add(fi);
+    }
     // parapet coping
     const cap = box(len + .1, .12, .5, new THREE.MeshStandardMaterial({ color: 0xbfc2c5, metalness: .6, roughness: .35 })); at(cap, len / 2, hgt + .06, .05); F.add(cap);
     return F;
   }
   const H1 = 24, L1 = 36, D1 = 22;
-  const winA = (i, j, nx) => j === 0 ? (i % 6 !== 0) : (j % 4 === 1 || j % 4 === 2) && (i % 6 >= 1 && i % 6 <= 3);
-  const winB = (i, j) => j === 0 ? true : (j % 4 === 2);
+  const winA = BIG ? ((i, j) => j === 0 ? (i % 5 !== 0) : (i % 5 === 2 || i % 5 === 3)) : ((i, j, nx) => j === 0 ? (i % 6 !== 0) : (j % 4 === 1 || j % 4 === 2) && (i % 6 >= 1 && i % 6 <= 3));
+  const winB = BIG ? ((i, j) => j === 0 || i % 4 === 2) : ((i, j) => j === 0 ? true : (j % 4 === 2));
   facade(L1, H1, cols[0], winA, -L1, 0, 0, DEC[0]);                 // front (+z), x from -L1..0
   facade(D1, H1, cols[1], winB, 0, 0, Math.PI / 2, DEC[1]);          // side, along -z from corner
   // second lower volume
@@ -578,7 +586,7 @@ async function buildingMain() {
   // trees
   const trunkM = new THREE.MeshStandardMaterial({ color: 0x3a3028 }), leafM = new THREE.MeshStandardMaterial({ color: dark ? 0x1f2a22 : 0x55684a, roughness: .9 });
   const treeSrc = [await loadPH('island_tree_01'), await loadPH('jacaranda_tree')];
-  for (const [x, z, s, k] of [[-36, 9, 1, 0], [3, 13, 1.1, 1], [-20, 17, .8, 0], [-48, 12, .9, 1]]) {
+  for (const [x, z, s, k] of (Q.get('close') === '1' ? [[-30, 14, 1, 0]] : [[-36, 9, 1, 0], [3, 13, 1.1, 1], [-20, 17, .8, 0], [-48, 12, .9, 1]])) {
     const t = treeSrc[k].clone(); const tb = new THREE.Box3().setFromObject(t); const th = tb.max.y - tb.min.y;
     t.scale.setScalar(8.5 * s / th); t.position.set(x, 0, z); t.rotation.y = x;
     if (dark) t.traverse(o => { if (o.isMesh) { o.material = o.material.clone(); o.material.color = new THREE.Color(0x5a6a5e); } });
@@ -591,6 +599,7 @@ async function buildingMain() {
   camera.fov = asp < .7 ? 52 : 38; camera.updateProjectionMatrix();
   const camPos = asp < .7 ? new THREE.Vector3(16, 1.7, 44) : new THREE.Vector3(22, 1.7, 40);
   camera.position.copy(camPos); camera.lookAt(-14, asp < .7 ? 15 : 9, -4);
+  if (Q.get('close') === '1') { camera.fov = asp < .7 ? 40 : 34; camera.updateProjectionMatrix(); camera.position.set(9, 4.5, 14); camera.lookAt(-5, 10.5, -1); }
   renderer.render(scene, camera);
   document.title = 'done';
 }
@@ -766,4 +775,253 @@ async function interiorMain() {
   if (close) { camera.position.set(1400, 1500, 1200); camera.lookAt(-1400, 1050, -2300); }
   else { camera.position.set(2600, 1500, 2600); camera.lookAt(-1200, kind === 'ceiling' ? 1900 : 1100, -1600); }
   renderer.render(scene, camera); document.title = 'done';
+}
+
+
+// ================================================================== V2: SYSTEM SCENES (mm, wall face z=0, y up)
+const TL2 = new THREE.TextureLoader();
+const decorTex = (c) => new Promise(r => TL2.load(`assets/decor/${c}.jpg`, t => { t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; r(t); }));
+const ALU = () => new THREE.MeshStandardMaterial({ color: 0xdfe2e6, metalness: .78, roughness: .28 });
+const PAD = () => new THREE.MeshStandardMaterial({ color: 0x3a3b3d, roughness: .9 });
+function vprof(kind, len, a, D, t, mat) {
+  // vertical profile: cross-section x across, y outward; extrusion along +y (0..len)
+  const s = new THREE.Shape();
+  if (kind === 'L') { s.moveTo(0, 0); s.lineTo(t, 0); s.lineTo(t, D - t); s.lineTo(a, D - t); s.lineTo(a, D); s.lineTo(0, D); s.lineTo(0, 0); }
+  else { s.moveTo(-t / 2, 0); s.lineTo(t / 2, 0); s.lineTo(t / 2, D - t); s.lineTo(a / 2, D - t); s.lineTo(a / 2, D); s.lineTo(-a / 2, D); s.lineTo(-a / 2, D - t); s.lineTo(-t / 2, D - t); s.lineTo(-t / 2, 0); }
+  const m = ext(s, len, mat || ALU(), .2); m.rotation.x = Math.PI / 2; m.position.y = len; return group(m);
+}
+function hrail(len, mat) {
+  // horizontal hanging rail (agraffe rail): Z-ish profile along x
+  const s = new THREE.Shape(); const t = 2.5;
+  s.moveTo(0, 0); s.lineTo(t, 0); s.lineTo(t, 40); s.lineTo(22, 40); s.lineTo(22, 52); s.lineTo(22 - t, 52); s.lineTo(22 - t, 40 + t); s.lineTo(0, 40 + t); s.lineTo(0, 0);
+  const m = ext(s, len, mat || ALU(), .2); m.rotation.y = Math.PI / 2; return group(m);   // shape x->z (out), y up; extrude along x
+}
+function klammer(mat) {
+  const s = new THREE.Shape(); const t = 2.5;
+  s.moveTo(0, 0); s.lineTo(t, 0); s.lineTo(t, 46); s.lineTo(-16, 46); s.lineTo(-16, 34); s.lineTo(-16 + t, 34); s.lineTo(-16 + t, 46 - t); s.lineTo(0, 46 - t); s.lineTo(0, 0);
+  const m = ext(s, 70, mat || ALU(), .2); m.rotation.y = Math.PI / 2; return group(m);
+}
+function dowel(len = 180) {
+  const g = new THREE.Group(); const pl = M.plastic('#e9e6df');
+  g.add(at(cyl(30, 30, 3, pl, 40), 0, 1.5, 0)); g.add(at(cyl(4.5, 4.5, len, pl, 16), 0, -len / 2, 0));
+  g.add(at(cyl(2.2, 2.2, 6, M.steel(), 12), 0, 3, 0));
+  return g;
+}
+function smallRivet(col = '#c9cdd2') {
+  const g = new THREE.Group();
+  g.add(lathe([[0, 0], [4.8, 0], [4.8, .6], [3.6, 1.8], [0, 2.1]], new THREE.MeshStandardMaterial({ color: col, metalness: .7, roughness: .3 }), 32));
+  g.add(at(cyl(2.4, 2.4, 9, ALU(), 16), 0, -4.5, 0)); g.add(at(cyl(1.2, 1.2, 4, M.steel(), 12), 0, 2.5, 0));
+  return g;
+}
+function bigRivet(col) {
+  const g = new THREE.Group(); const R = 8;
+  const hp = []; for (let i = 0; i <= 16; i++) { const t = i / 16; hp.push([Math.max(R * Math.cos(t * Math.PI / 2) ** .5, .001), 2.4 * Math.sin(t * Math.PI / 2)]); }
+  g.add(lathe(hp, new THREE.MeshPhysicalMaterial({ color: col, roughness: .38, clearcoat: .6, clearcoatRoughness: .25 }), 64));
+  g.add(at(cyl(2.5, 2.5, 18, ALU(), 16), 0, -9, 0));
+  g.add(at(cyl(1.1, 1.1, 1, new THREE.MeshStandardMaterial({ color: 0x999da3, metalness: .8, roughness: .3 }), 12), 0, 2.5, 0));
+  return g;
+}
+function facadeScrew(col) {
+  const g = new THREE.Group();
+  g.add(lathe([[0, 0], [7.5, 0], [7.5, .5], [6.2, 2.4], [0, 2.9]], new THREE.MeshPhysicalMaterial({ color: col, roughness: .38, clearcoat: .6 }), 48));
+  const star = new THREE.MeshStandardMaterial({ color: 0x111111 });
+  for (let i = 0; i < 3; i++) g.add(at(box(6, .8, 1.2, star), 0, 2.7, 0, 0, i * Math.PI / 3, 0));
+  g.add(at(cyl(2.6, 2.6, 30, M.steel(), 16), 0, -15, 0));
+  return g;
+}
+function wallBracket(y, x, armSide, opts) {
+  // returns group: thermal pad + bracket (arm at x, arm on +x side of web?) + anchors. Bracket arm length 150 along z.
+  const g = new THREE.Group(); const H = 90, t = 3, L = 150;
+  g.add(at(box(84, 116, 5, PAD()), x - armSide * 32, y, 2.5));
+  const plate = box(64, H, t, opts.galv ? M.galv() : ALU()); at(plate, x - armSide * 32, y, 5 + t / 2); g.add(plate);
+  const arm = box(t, H, L, opts.galv ? M.galv() : ALU()); at(arm, x - armSide * t / 2, y, 4 + L / 2); g.add(arm);
+  for (const dy of [-22, 22]) { const a = anchor(110); a.scale.setScalar(.95); at(a, x - armSide * 36, y + dy, 7, Math.PI / 2, 0, 0); g.add(a); }
+  return g;
+}
+async function systemAssembly(sys, o) {
+  // o: {w (slice width), cuts {ins, mem, epdm, panel}, panels: [[x0,x1]], profiles:[{x,kind}], brackets:[y..], wall, ex}
+  const G = new THREE.Group(); const P = {}; const ex = o.ex ?? 0;
+  const W = o.w, Hh = o.h;
+  const IT = 100, PD = 60, PZ0 = 92, PZ = PZ0 + PD;            // profile web from z=92 to flange face z=152
+  if (o.wall !== false) { G.add(at(box(W + 300, Hh + 200, 220, M.concrete()), W / 2, Hh / 2, -110)); P.wall = [W - 60, Hh - 80, 0]; }
+  // brackets + profiles
+  const profs = o.profiles;
+  for (const pr of profs) {
+    for (const by of o.brackets) {
+      const side = pr.kind === 'L' ? -1 : -1;
+      const b = wallBracket(by, pr.x - 1.5, side, {}); G.add(b);
+      if (!P.bracket && by === o.brackets[o.brackets.length - 1]) { P.bracket = [pr.x, by + 30, 120]; P.pad = [pr.x + 30, by - 50, 4]; P.anchor = [pr.x + 36, by + 22, 12]; }
+      // profile rivets through arm + web (axis x)
+      for (const dz of [110, 132]) { const r = smallRivet(); at(r, pr.x + 1.5, by, dz + ex * 2, 0, 0, -Math.PI / 2); if (o.fscale) r.scale.setScalar(o.fscale * 1.2); G.add(r);
+        if (!P.prof_rivet && by === o.brackets[o.brackets.length - 1]) P.prof_rivet = [pr.x + 4, by, dz + ex * 2]; }
+    }
+    const len = o.cuts.prof ?? Hh;
+    const pm = vprof(pr.kind, len, pr.kind === 'L' ? 60 : 110, PD, 2, ALU()); pm.position.set(pr.x, 0, PZ0 + ex * 2); G.add(pm);
+    if (pr.kind === 'L' && !P.lprof) P.lprof = [pr.x + 30, len - 140, PZ + ex * 2];
+    if (pr.kind === 'T' && !P.tprof) P.tprof = [pr.x + 40, len - 140, PZ + ex * 2];
+    // EPDM / bonding layers on flange
+    const fw = pr.kind === 'L' ? 60 : 110, fx = pr.kind === 'L' ? pr.x + 30 : pr.x;
+    if (sys === 'rivet' || sys === 'screw') {
+      const e = box(fw, o.cuts.epdm, 1.2, M.rubber()); at(e, fx, o.cuts.epdm / 2, PZ + .6 + ex * 2.6); G.add(e);
+      if (!P.epdm && pr.kind === 'T') P.epdm = [fx + 40, o.cuts.epdm - 120, PZ + ex * 2.6];
+    }
+    if (sys === 'glue') {
+      const primer = box(fw, o.cuts.epdm, .4, new THREE.MeshStandardMaterial({ color: 0x1e1f21, roughness: .7 })); at(primer, fx, o.cuts.epdm / 2, PZ + .2 + ex * 2.3); G.add(primer);
+      if (!P.primer && pr.kind === 'L') P.primer = [fx + 20, o.cuts.epdm - 60, PZ + ex * 2.3];
+      const lanes = pr.kind === 'T' ? [pr.x - 38, pr.x + 38] : [fx];
+      for (const lx of lanes) {
+        const tp = box(12, o.cuts.epdm - 40, 3, new THREE.MeshStandardMaterial({ color: 0x3d4045, roughness: .95 })); at(tp, lx - 14, o.cuts.epdm / 2, PZ + 1.5 + ex * 2.6); G.add(tp);
+        const bead = mesh(new THREE.CylinderGeometry(5, 5, o.cuts.epdm - 60, 3), new THREE.MeshPhysicalMaterial({ color: 0x141416, roughness: .35, clearcoat: .6 }));
+        at(bead, lx + 6, o.cuts.epdm / 2 - 10, PZ + 4 + ex * 2.6); G.add(bead);
+        if (!P.tape && pr.kind === 'T') { P.tape = [lx - 14, o.cuts.epdm - 140, PZ + 3 + ex * 2.6]; P.bead = [lx + 6, o.cuts.epdm - 260, PZ + 8 + ex * 2.6]; }
+      }
+      if (pr.kind === 'T') { const e = box(14, o.cuts.epdm, 1, M.rubber()); at(e, pr.x, o.cuts.epdm / 2, PZ + .6 + ex * 2.6); G.add(e); if (!P.epdm) P.epdm = [pr.x, o.cuts.epdm - 40, PZ + ex * 2.6]; }
+    }
+  }
+  // hidden: horizontal rails riveted onto vertical profiles
+  if (sys === 'hidden') {
+    for (const ry of o.rails) { const r = hrail(W - 40); r.position.set(20, ry, PZ + ex * 2.4); G.add(r); if (!P.rail) P.rail = [W * .55, ry + 46, PZ + 22 + ex * 2.4];
+      if (ex > 0 && ry > o.cuts.panel) for (const kx of [W * .42, W * .78]) { const k = klammer(); k.scale.setScalar(1.6); k.position.set(kx - 56, ry + 30, PZ + 60 + ex * 3.0); G.add(k); if (!P.clip) P.clip = [kx, ry + 80, PZ + 60 + ex * 3.0]; } }
+  }
+  // insulation (2 boards), dowels, membrane
+  const ins = o.cuts.ins;
+  for (const [y0, y1] of [[0, ins * .5 - 3], [ins * .5 + 3, ins]]) { const b = box(W - 20, y1 - y0, IT, M.wool(), 4); at(b, W / 2, (y0 + y1) / 2, IT / 2 + ex); G.add(b); }
+  P.ins = [W * .12, ins - 120, IT + ex];
+  for (const [dx, dy] of [[W * .2, ins * .25], [W * .62, ins * .78], [W * .82, ins * .3]]) { const d = dowel(); at(d, dx, dy, IT + ex, Math.PI / 2, 0, 0); G.add(d); if (!P.dowel) P.dowel = [dx, dy, IT + 3 + ex]; }
+  const memTex = canvasTex(256, 256, (g, w, h) => { g.fillStyle = '#d9dcdf'; g.fillRect(0, 0, w, h); for (let y = 0; y < h; y += 4) { g.fillStyle = 'rgba(0,0,0,.05)'; g.fillRect(0, y, w, 1); } for (let x = 0; x < w; x += 4) { g.fillStyle = 'rgba(255,255,255,.25)'; g.fillRect(x, 0, 1, h); } }, [8, 8]);
+  const mem = box(W - 20, o.cuts.mem, 1.2, new THREE.MeshStandardMaterial({ map: memTex, roughness: .95 })); at(mem, W / 2, o.cuts.mem / 2, IT + 1 + ex * 1.5); G.add(mem);
+  P.mem = [W * .1, o.cuts.mem - 90, IT + 2 + ex * 1.5];
+  // panels
+  const dec = await decorTex(o.decor || 'F-11');
+  const fm = new THREE.MeshPhysicalMaterial({ map: dec, roughness: .5, clearcoat: .25, clearcoatRoughness: .4 });
+  const core = new THREE.MeshStandardMaterial({ color: 0x2a221d, roughness: .8 });
+  const PT = 8, pz = PZ + (sys === 'glue' ? 5 : sys === 'hidden' ? 52 : 1.2) + ex * 3.4;
+  o.panels.forEach(([x0, x1], pi) => {
+    const ph = o.cuts.panel;
+    const pn = box(x1 - x0, ph, PT, [core, core, core, core, fm, core]); at(pn, (x0 + x1) / 2, ph / 2, pz + PT / 2);
+    if (o.open && pi === o.panels.length - 1) {
+      const hinge = new THREE.Group(); hinge.position.set(x0, 0, pz); pn.position.set((x1 - x0) / 2, ph / 2, PT / 2); hinge.add(pn);
+      hinge.rotation.y = o.open; hinge.position.x += 650; hinge.position.z += 700; G.add(hinge);
+      if (sys === 'hidden') for (const ry of o.rails) for (const kx of [x0 + 200, x1 - 200]) { const k = klammer(); k.scale.setScalar(1.2); k.position.set(kx - 42, ry + 12, PZ + 18); G.add(k); if (!P.clip) P.clip = [kx, ry + 40, PZ + 40]; }
+      return;
+    }
+    G.add(pn);
+    if (!P.panel) P.panel = [(x0 + x1) / 2, ph * .55, pz + PT];
+    if (sys === 'rivet' || sys === 'screw') {
+      for (const pr of profs) {
+        const xs = pr.kind === 'T' ? [pr.x - 28, pr.x + 28] : [pr.x + 30];
+        for (const rx of xs) if (rx > x0 + 15 && rx < x1 - 15) for (let ry = 120; ry < ph - 40; ry += o.pitch || 520) {
+          const f = sys === 'rivet' ? bigRivet(o.headCol || '#3a3b3e') : facadeScrew(o.headCol || '#3a3b3e');
+          at(f, rx, ry, pz + PT, Math.PI / 2, 0, 0); if (o.fscale) f.scale.setScalar(o.fscale); G.add(f);
+          if (!P.fastener && pr.kind === 'T') P.fastener = [rx, ry, pz + PT + 2];
+        }
+      }
+    }
+    if (sys === 'hidden') {
+      for (const ry of o.rails) if (ry + 60 < ph) for (const kx of [x0 + 160, x1 - 160]) {
+        const k = klammer(); k.position.set(kx - 35, ry + 10, pz - 17); G.add(k);
+        const an = cyl(5, 5, 7, M.steel(), 16); at(an, kx, ry + 30, pz - 3, Math.PI / 2); G.add(an);
+        if (!P.clip) P.clip = [kx, ry + 40, pz - 10];
+      }
+    }
+  });
+  return { G, P };
+}
+function project(P, cam) {
+  const out = {}; const w = W, h = H;
+  for (const [k, v] of Object.entries(P)) { const p = new THREE.Vector3(...v).project(cam); out[k] = [Math.round((p.x + 1) / 2 * w), Math.round((1 - p.y) / 2 * h)]; }
+  return out;
+}
+async function lightStudio(int = 1) {
+  const hdr = await new RGBELoader().loadAsync('assets/hdri/studio_small_09.hdr');
+  hdr.mapping = THREE.EquirectangularReflectionMapping; scene.environment = hdr; scene.environmentIntensity = .85 * int;
+  const key = new THREE.DirectionalLight(0xffffff, 2.2); key.position.set(-1800, 2600, 2400); key.castShadow = true;
+  key.shadow.mapSize.set(4096, 4096); Object.assign(key.shadow.camera, { left: -2600, right: 2600, top: 2600, bottom: -2600, near: 10, far: 9000 }); key.shadow.bias = -0.0004; key.shadow.radius = 4;
+  scene.add(key); scene.add(new THREE.HemisphereLight(0xffffff, 0xd9d6d0, .35)); return key;
+}
+function outJSON(o) { const pre = document.createElement('pre'); pre.id = 'out'; pre.textContent = JSON.stringify(o); document.body.appendChild(pre); }
+async function xMain() {
+  const parts = NAME.split('_'); const kind = parts[1], sys = parts[2] || 'rivet';
+  camera.near = 5; camera.far = 60000;
+  const key = await lightStudio();
+  if (kind === 'expl') {
+    const cfg = { w: 1500, h: 2300, ex: Number(Q.get('ex') ?? 110), decor: Q.get('dec') || 'F-20', headCol: Q.get('head') || '#3a3b3e',
+      profiles: [{ x: 300, kind: 'L' }, { x: 860, kind: 'T' }, { x: 1300, kind: 'L' }], brackets: [380, 1180, 2020], rails: [620, 1380],
+      panels: [[-120, 856], [864, 1650]], pitch: 360, fscale: 1.8,
+      cuts: { ins: 1780, mem: 1520, prof: 2300, epdm: 1260, panel: 880 } };
+    const { G, P } = await systemAssembly(sys, cfg); scene.add(G);
+    camera.fov = 30; camera.aspect = W / H; camera.updateProjectionMatrix();
+    const tgt = new THREE.Vector3(800, 1150, 200);
+    camera.position.set(tgt.x + 3900, tgt.y + 1500, tgt.z + 3600); camera.lookAt(tgt);
+    key.target.position.copy(tgt); scene.add(key.target);
+    renderer.render(scene, camera); outJSON(project(P, camera)); document.title = 'done'; return;
+  }
+  if (kind === 'sys' || kind === 'macro') {
+    // two full panels 1220 x 3050 with 8 mm joint, real proportions
+    const J = 8, PW = 1220, PH = 3050;
+    const cfg = { w: PW * 2 + J, h: PH + 60, ex: 0, decor: Q.get('dec') || 'F-20', headCol: Q.get('head') || '#6f6a65',
+      profiles: [{ x: 30, kind: 'L' }, { x: PW * .5, kind: 'L' }, { x: PW + J / 2, kind: 'T' }, { x: PW * 1.5 + J, kind: 'L' }, { x: PW * 2 + J - 90, kind: 'L' }],
+      brackets: [300, 1300, 2300, 2950], rails: [400, 1300, 2200, 2900], panels: [[0, PW], [PW + J, PW * 2 + J]], pitch: 560, open: kind === 'sys' ? .42 : 0, fscale: kind === 'sys' ? 2 : 1,
+      cuts: { ins: PH, mem: PH, prof: PH, epdm: PH, panel: PH } };
+    const { G, P } = await systemAssembly(sys, cfg); scene.add(G);
+    camera.aspect = W / H;
+    if (kind === 'sys') {
+      camera.fov = 28; camera.updateProjectionMatrix();
+      const tgt = new THREE.Vector3(PW + 520, PH / 2 - 100, 300);
+      camera.position.set(tgt.x - 3800, tgt.y + 1900, tgt.z + 8900); camera.lookAt(tgt);
+    } else {
+      camera.fov = 30; camera.updateProjectionMatrix();
+      const v = Q.get('v') || 'front';
+      if (v === 'front') { const tgt = new THREE.Vector3(PW + 4, 1240, 165); camera.position.set(tgt.x + 230, tgt.y + 110, tgt.z + 470); camera.lookAt(tgt); }
+      else { const tgt = new THREE.Vector3(PW + 4, PH - 20, 120); camera.position.set(tgt.x + 380, tgt.y + 640, tgt.z + 620); camera.lookAt(tgt); }
+    }
+    key.target.position.set(PW, PH / 2, 0); scene.add(key.target);
+    renderer.render(scene, camera); outJSON(project(P, camera)); document.title = 'done'; return;
+  }
+  if (kind === 'wall') {
+    scene.background = canvasTex(8, 512, (g, w, h) => { const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#cfd8e0'); gr.addColorStop(1, '#f3f1ee'); g.fillStyle = gr; g.fillRect(0, 0, w, h); });
+    key.intensity = 3.0; key.position.set(-6000, 5200, 4200);
+    Object.assign(key.shadow.camera, { left: -9000, right: 9000, top: 9000, bottom: -9000, far: 30000 }); key.shadow.camera.updateProjectionMatrix();
+    const dec = await decorTex(Q.get('dec') || 'F-11');
+    const fm = new THREE.MeshPhysicalMaterial({ map: dec, roughness: .5, clearcoat: .25 });
+    const core = new THREE.MeshStandardMaterial({ color: 0x241e1a });
+    const PW = 1220, PH = 3050, J = 8, cols = +(Q.get('c') || 6), rows = +(Q.get('r') || 3);
+    const head = Q.get('head') || '#3c3d40';
+    const back = box(cols * (PW + J) + 400, rows * (PH + J) + 400, 40, new THREE.MeshStandardMaterial({ color: 0x18191b })); at(back, cols * (PW + J) / 2, rows * (PH + J) / 2, -60); scene.add(back);
+    for (let i = 0; i < cols; i++) for (let j = 0; j < rows; j++) {
+      const x0 = i * (PW + J), y0 = j * (PH + J);
+      scene.add(at(box(PW, PH, 8, [core, core, core, core, fm, core]), x0 + PW / 2, y0 + PH / 2, 4));
+      if (sys === 'rivet' || sys === 'screw') for (const fx of [30, PW / 2, PW - 30]) for (let fy = 120; fy < PH - 40; fy += 560) {
+        const f = sys === 'rivet' ? bigRivet(head) : facadeScrew(head); at(f, x0 + fx, y0 + fy, 8, Math.PI / 2, 0, 0); scene.add(f);
+      }
+    }
+    const ground = box(40000, 10, 40000, new THREE.MeshStandardMaterial({ color: 0xbfbab2, roughness: .9 })); at(ground, 0, -5, 0); scene.add(ground);
+    camera.fov = +(Q.get('fov') || 38); camera.aspect = W / H; camera.updateProjectionMatrix();
+    const cx = +(Q.get('cx') || 5200), cy = +(Q.get('cy') || 1500), cz = +(Q.get('cz') || 5200);
+    camera.position.set(cx, cy, cz); camera.lookAt(+(Q.get('tx') || 2600), +(Q.get('ty') || 3600), 0);
+    renderer.render(scene, camera); document.title = 'done'; return;
+  }
+  if (kind === 'cover') {
+    scene.environment = null;
+    const hdr = await new RGBELoader().loadAsync('assets/hdri/kloofendal_48d_partly_cloudy_puresky.hdr'); hdr.mapping = THREE.EquirectangularReflectionMapping;
+    scene.environment = hdr; scene.environmentIntensity = .55;
+    scene.background = canvasTex(8, 512, (g, w, h) => { const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#e9ecef'); gr.addColorStop(1, '#fbfbfa'); g.fillStyle = gr; g.fillRect(0, 0, w, h); });
+    key.intensity = 3.4; key.position.set(14000, 9000, 5200); key.target.position.set(8000, 9000, 0); scene.add(key.target);
+    Object.assign(key.shadow.camera, { left: -16000, right: 16000, top: 16000, bottom: -16000, far: 40000 }); key.shadow.camera.updateProjectionMatrix();
+    const dec = await decorTex(Q.get('dec') || 'F-24');
+    const fm = new THREE.MeshPhysicalMaterial({ map: dec, roughness: .55, clearcoat: .2 });
+    const edge = new THREE.MeshStandardMaterial({ color: 0x2a221d });
+    const PW = 1220, PH = 3050, J = 10, cols = 14, rows = 7;
+    const F = new THREE.Group(); scene.add(F);
+    for (let i = 0; i < cols; i++) for (let j = 0; j < rows; j++) {
+      const p = box(PW, PH, 10, [edge, edge, edge, edge, fm, edge]);
+      const tilt = (i % 2 ? 1 : -1) * +(Q.get('tilt') || .2);
+      const pv = new THREE.Group(); pv.add(at(p, 0, 0, 0)); pv.position.set(i * (PW + J), j * (PH + J) + PH / 2, 0); pv.rotation.y = tilt; F.add(pv);
+    }
+    const backing = box(cols * (PW + J) + 2000, rows * (PH + J) + 2000, 10, new THREE.MeshStandardMaterial({ color: 0x8f9296 })); at(backing, cols * (PW + J) / 2, rows * (PH + J) / 2, -260); F.add(backing);
+    scene.environmentIntensity = .22; key.intensity = 4.2;
+    camera.fov = 40; camera.aspect = W / H; camera.updateProjectionMatrix();
+    camera.position.set(-1500, 1200, 5200); camera.lookAt(9000, 10500, 0);
+    renderer.render(scene, camera); document.title = 'done'; return;
+  }
 }

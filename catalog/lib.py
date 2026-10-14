@@ -57,8 +57,8 @@ DEFS = f"""
   <rect width="10" height="10" fill="{MEM}"/><path d="M0 10L10 0" stroke="#565b62" stroke-width="1"/>
  </pattern>
  <!-- section hatches (2D drawings) -->
- <pattern id="hCon" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-  <rect width="12" height="12" fill="#ECECEA"/><line x1="0" y1="0" x2="0" y2="12" stroke="{MG}" stroke-width="1"/>
+ <pattern id="hCon" width="12" height="12" patternUnits="userSpaceOnUse">
+  <rect width="12" height="12" fill="#ECECEA"/><path d="M-3 3L3 -3M0 12L12 0M9 15L15 9" stroke="{MG}" stroke-width="1"/>
  </pattern>
  <pattern id="hIns" width="16" height="14" patternUnits="userSpaceOnUse">
   <rect width="16" height="14" fill="#F6EED6"/>

@@ -6,7 +6,7 @@ from PIL import Image
 
 src = sys.argv[1] if len(sys.argv) > 1 else "uzhpl-catalog.pdf"
 dst = sys.argv[2] if len(sys.argv) > 2 else src
-Q, MAXW = 76, 1400
+Q, MAXW = 90, 2200
 
 pdf = pikepdf.open(src, allow_overwriting_input=True)
 done = set()

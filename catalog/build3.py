@@ -373,7 +373,7 @@ b.add(title("Монтаж", "Заклёпочная система", "После
 
 b.add(title("Инструменты", "Заклёпочная система", "Специальная оснастка для заклёпочного фасада HPL (MBE / Trespa) и электроинструмент.")
       + '<div class="g3" style="margin-top:34px;gap:14px">'
-      + toolcard(MB + "accubird_pro.jpg", "Заклёпочник AccuBird PRO", "Аккумуляторный, 18 В, усилие 10 000 Н, ход 25 мм. Для заклёпок до Ø5 мм.", "MBE")
+      + toolcard(MB + "accubird_pro.jpg", "Заклёпочник Gesipa AccuBird PRO", "Аккумуляторный, 18 В, усилие 10 000 Н, ход 25 мм. Для заклёпок до Ø5 мм.", "MBE")
       + toolcard(MB + "mouth_g3.jpg", "Наконечник G3", "Для алюминиевых заклёпок Ø5, головка Ø16. Монтаж без зажима панели. Резьба M10 × 1.", "скользящие точки")
       + toolcard(MB + "spring_jig.jpg", "Пружинный кондуктор", "Одноручный, 5,1 / 10 мм: центрирует сверление профиля через отверстие панели.", "перенос отверстий")
       + toolcard(MB + "buegel_jig.jpg", "Скобовый кондуктор", "Панель Ø10 / профиль Ø5,1 мм; вариант с эксцентриком.", "перенос отверстий")
@@ -554,7 +554,7 @@ b.add(f'<div style="margin-top:120px">{title("Фасадные<br>узлы", "Р
       f'<div class="toc" style="margin-top:56px;border-top:1px solid #34373c">{rows}</div></div>', "Фасадные узлы", dark=True, anchor="nodes")
 for i, (k, n, pts) in enumerate(node_pages):
     b.add(title(n, "Фасадный узел") + f'<div class="fig" style="margin-top:34px">{node(k, 900, 720, "rivet")}</div>'
-          + f'<div style="display:grid;grid-template-columns:1.1fr 1fr;gap:36px;margin-top:30px"><div style="background:{XL};padding:18px">'
+          + f'<div style="display:grid;grid-template-columns:1.1fr 1fr;gap:36px;margin-top:30px"><div style="background:#fff;border:1px solid {LG};padding:18px">'
           + f'<div class="cap" style="margin:0">3D-ВИД УЗЛА</div><div style="height:600px;margin-top:8px"><img src="img/{N3D[k]}.png" style="width:100%;height:100%;object-fit:contain;mix-blend-mode:multiply"></div></div>'
           + '<div><h3>Ключевые элементы</h3>' + "".join(f'<div class="li" style="grid-template-columns:36px 1fr"><span class="badge">{j + 1}</span><h4>{t}</h4></div>' for j, t in enumerate(pts))
           + '<h3 style="margin-top:30px">Данные проекта</h3>' + "".join(f'<div class="spec" style="font-size:15px"><span>{a}</span><span class="pill">{c}</span></div>'
@@ -592,7 +592,7 @@ b.add(title("Инструменты<br>UZHPL", "Инструменты", "Про
       + toolcard(TL + "guide_rail.jpg", "Направляющая шина", "Прямой рез без сколов по всей длине листа 3050 мм.", "раскрой", 120)
       + toolcard(TL + "mafell_kss40.jpg", "Mafell KSS 40", "Аккумуляторная торцовочная пила на шине — точный рез на объекте.", "раскрой", 120)
       + '</div><h3 style="margin-top:30px">Заклёпки и сверление (MBE / Trespa)</h3><div class="g3" style="gap:14px">'
-      + toolcard(MB + "accubird_pro.jpg", "AccuBird PRO", "18 В, 10 000 Н, ход 25 мм.", "заклёпочник", 120)
+      + toolcard(MB + "accubird_pro.jpg", "Gesipa AccuBird PRO", "18 В, 10 000 Н, ход 25 мм.", "заклёпочник", 120)
       + toolcard(MB + "mouth_g3.jpg", "Наконечники G3 / G7 / G10", "G3 — Al-заклёпки Ø5 / головка 16; G7 — нерж.; G10 — с большой шайбой.", "без зажима", 110)
       + toolcard(MB + "spring_jig.jpg", "Кондукторы", "Пружинный 5,1 / 10 и скобовый — центровка отверстий.", "перенос отверстий", 110)
       + '</div><h3 style="margin-top:30px">Подсистема и монтаж</h3><div class="g4" style="gap:12px">'

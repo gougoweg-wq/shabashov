@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Catalog v2 — minimal page system (9:16, 1080x1920)."""
 import re
+from vhatch import vectorize
 
 OR, GR, DG, MG, LG, XL = "#F26A1B", "#1D1F22", "#4A4E55", "#8A8F96", "#E3E5E8", "#F4F5F6"
 
@@ -98,6 +99,7 @@ class Book:
         body = "".join(self.pages)
         body = re.sub(r'#a-([\w.-]+)"', lambda m: f'#p{self.anchors.get(m.group(1), 2)}"', body)
         body = re.sub(r'\{\{pg:([\w.-]+)\}\}', lambda m: f'{self.anchors.get(m.group(1), 0):02d}', body)
+        body = vectorize(body)
         return ('<!doctype html><html lang="ru"><head><meta charset="utf-8">'
                 '<meta name="viewport" content="width=device-width,initial-scale=1">'
                 f'<title>UZHPL — Технический каталог</title><style>{CSS}</style></head><body>' + body + "</body></html>")
